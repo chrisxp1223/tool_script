@@ -64,7 +64,10 @@ def cmd_menu(argv):
             subprocess.call(["cros_sdk","--delete"])    
             break
         elif cmd == '-r':
-            subprocess.call(["cros_sdk", "-r"])
+            subprocess.call(["cros_sdk", "--replace"])
+            break
+        elif cmd == '-n':
+            subprocess.call(["cros_sdk", "--nouse-image"])
             break
         elif cmd == '-h':
             help_menu()
