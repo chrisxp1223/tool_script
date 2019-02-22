@@ -1,12 +1,13 @@
 #!/bin/bash
 
-args=
 
 DEPOT_TOOLS="depot_tools"
 SHOW_HELP_MENU=
-VERSION="1.0"
+VERSION="1.0.1"
 GET_DEPOT_TOOL=
 CURRENT_LOCATION=$(pwd)
+export PATH=$PATH:/$(pwd)/depot_tools
+
 
 help_menu () {
     echo "Usage: crosenv [repo command=n] [code source=n]"
@@ -21,13 +22,11 @@ help_menu () {
 
 get_depot_tool () {
     read -p "depot_tool is not exsit, press 'y' for download depot tool: " answer
-
     if test "$answer" = "y" || test "$answer" = "Y" 
     then
         echo "download now..."
         git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
     fi
-
 }
 
 crosenv_version() {
@@ -35,24 +34,26 @@ crosenv_version() {
 }
 
 repo_init() {
-
-    echo "repo init"
+    echo "------> repo init"
 }
 
 repo_sync() {
-    echo "repo sync"
+    echo "------> repo sync"
+    repo sync
 }
 
 cros_del() {
-    echo "cros delete"
+    echo "------> cros delete"
+    cros_sdk --delete
 }
 
 cros_replace() {
-    echo "cros replace"
+    echo "------> cros replace"
+    cros_sdk --replace
 }
 crossdk(){
-
-    echo "cros_sdk"
+    echo "------> cros_sdk"
+    cros_sdk --no-ns-pid
 }
 ###########################################################
 #
@@ -91,4 +92,3 @@ if [ "${SHOW_HELP_MENU}" ]; then
     help_menu	
 	exit 0
 fi
-#crosenv
