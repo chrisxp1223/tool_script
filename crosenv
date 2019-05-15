@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 
 DEPOT_TOOLS="depot_tools"
 SHOW_HELP_MENU=
-VERSION="1.0.2"
+VERSION="1.0.3"
 GET_DEPOT_TOOL=
 CURRENT_LOCATION=$(pwd)
 export PATH=$PATH:/$(pwd)/depot_tools
@@ -12,7 +12,8 @@ export PATH=$PATH:/$(pwd)/depot_tools
 help_menu () {
     echo "Usage: crosenv [repo command=n] [code source=n]"
     echo "Commands:"
-    echo "  b : repo init [firmware branch]"
+    echo "  v : crosenv version"
+    echo "  i : repo init [firmware branch]"
     echo "  s : repo sync"
     echo "  c : cros_sdk"
     echo "  d : cros_sdk --delete"
@@ -55,40 +56,29 @@ crossdk(){
     echo "------> cros_sdk"
     cros_sdk --no-ns-pid
 }
+
 ###########################################################
-#
-# get arg
-#
-args=$(getopt -l version,help,init,sync,delete,replace,cros,debug -o vhbscdr -- "$@")
-getopt_ret=$?
-eval set -- "${args}"
+main() {
+    
+    local GET_DEPOT_TOOL="FLASE"
+    local brach_name=
 
-if [ ${getopt_ret} != 0 ]; then
-	SHOW_HELP_MENU=1
-fi
+    if [ ! -d $(pwd)/depot_tools ]; then
+        get_depot_tool
+    fi
+ 
+    while getopts 'vhi:scdr' flag; do
+    case ${flag} in
+      h) help_menu ;;
+      v) crosenv_version ;;
+      i) brach_name="OPTARG" repo_init brach_name ;;
+      s) repo_sync ;; 
+      c) cros_sdk ;;
+      d) cros_del ;;
+      r) cros_replace ;;
+      *) die "invalid option found" ;;
+    esac
+  done
 
-if [ ! -d "${DEPOT_TOOLS}" ]; then
-    GET_DEPOT_TOOL=1
-fi
-
-if [ "${GET_DEPOT_TOOL}" ]; then
-    get_depot_tool
-fi
-
-while true ; do
-	case "$1" in
-		-v|--version)		shift; crosenv_version; exit 0;;
-		-h|--help)		    shift; SHOW_HELP_MENU=1;;
-        -b|--init)          shift; repo_init; exit 0;;
-        -s|--sync)          shift; repo_sync; exit 0;;
-        -c|--cros)          shift; crossdk; exit 0;;
-        -d|--delete)        shift; cros_del; exit 0;;
-        -r|--replace)       shift; cros_replace; exit 0;; 
-		--)			        shift; break;;
-		*)			break;;
-	esac
-done
-if [ "${SHOW_HELP_MENU}" ]; then
-    help_menu	
-	exit 0
-fi
+}
+main "$@"
