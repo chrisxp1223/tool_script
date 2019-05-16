@@ -3,7 +3,7 @@
 
 DEPOT_TOOLS="depot_tools"
 SHOW_HELP_MENU=
-VERSION="1.0.3"
+VERSION="1.0.4444"
 GET_DEPOT_TOOL=
 CURRENT_LOCATION=$(pwd)
 export PATH=$PATH:/$(pwd)/depot_tools
@@ -13,7 +13,7 @@ help_menu () {
     echo "Usage: crosenv [repo command=n] [code source=n]"
     echo "Commands:"
     echo "  v : crosenv version"
-    echo "  i : repo init [firmware branch]"
+    echo "  i : repo init [firmware branch] [default : ToT]"
     echo "  s : repo sync"
     echo "  c : cros_sdk"
     echo "  d : cros_sdk --delete"
@@ -36,6 +36,12 @@ crosenv_version() {
 
 repo_init() {
     echo "------> repo init"
+    echo "repo init $1"
+    if [ "$1" = "ToT" ]; then
+        repo init -u https://chromium.googlesource.com/chromiumos/manifest.git --repo-url https://chromium.googlesource.com/external/repo.git
+    else
+        repo init -u https://chromium.googlesource.com/chromiumos/manifest.git -b $1 -g firmware
+    fi
 }
 
 repo_sync() {
@@ -57,12 +63,18 @@ crossdk(){
     cros_sdk --no-ns-pid
 }
 
+die() {
+  echo "${0##*/}: error: $*" >&2
+  exit 1
+}
+
+
 ###########################################################
 main() {
-    
-    local GET_DEPOT_TOOL="FLASE"
-    local brach_name=
 
+    local GET_DEPOT_TOOL="FLASE"
+    local branch_name=""
+    local init_flag="false"
     if [ ! -d $(pwd)/depot_tools ]; then
         get_depot_tool
     fi
@@ -71,14 +83,19 @@ main() {
     case ${flag} in
       h) help_menu ;;
       v) crosenv_version ;;
-      i) brach_name="OPTARG" repo_init brach_name ;;
+      i) init_flag="true"
+         branch_name="${OPTARG}" ;;
       s) repo_sync ;; 
       c) cros_sdk ;;
       d) cros_del ;;
       r) cros_replace ;;
       *) die "invalid option found" ;;
-    esac
-  done
+     esac
+    done
+
+    if [ "$init_flag" = "true" ]; then
+        repo_init ${branch_name}
+    fi
 
 }
 main "$@"
