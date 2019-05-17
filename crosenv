@@ -8,6 +8,22 @@ GET_DEPOT_TOOL=
 CURRENT_LOCATION=$(pwd)
 export PATH=$PATH:/$(pwd)/depot_tools
 
+# Text STYLE variables
+#BOLD="\033[1m"
+RED='\033[38;5;9m'
+GREEN='\033[38;5;2m'
+ORANGE_RED="\033[38;5;202m"
+C_DODGERBLUE2="\033[38;5;27m"
+NC='\033[0m' # No Color
+
+
+_printf_color() {
+	printf "${1}%s" "$2"
+}
+
+_echo_color() {
+	printf "${1}%s${NC}\n" "$2"
+}
 
 help_menu () {
     echo "Usage: crosenv [repo command=n] [code source=n]"
@@ -35,8 +51,12 @@ crosenv_version() {
 }
 
 repo_init() {
-    echo "------> repo init"
-    echo "repo init $1"
+    _printf_color "${GREEN}" "------> repo init"
+    _echo_color "${NC}" ""
+    _printf_color "${RED}" "repo init $1"
+    _echo_color "${NC}" ""
+    
+    
     if [ "$1" = "ToT" ]; then
         repo init -u https://chromium.googlesource.com/chromiumos/manifest.git --repo-url https://chromium.googlesource.com/external/repo.git
     else
@@ -45,21 +65,25 @@ repo_init() {
 }
 
 repo_sync() {
-    echo "------> repo sync"
+    _printf_color "${GREEN}" "------> repo sync"
+    _echo_color "${NC}" ""
     repo sync
 }
 
 cros_del() {
-    echo "------> cros delete"
+    _printf_color "${GREEN}" "------> cros  delete"
+    _echo_color "${NC}" ""
     cros_sdk --delete
 }
 
 cros_replace() {
-    echo "------> cros replace"
+    _printf_color "${GREEN}" "------> cros replace"
+    _echo_color "${NC}" ""
     cros_sdk --replace
 }
 crossdk(){
-    echo "------> cros_sdk"
+    _printf_color "${GREEN}" "------> cros_sdk"
+    _echo_color "${NC}" ""
     cros_sdk --no-ns-pid
 }
 
