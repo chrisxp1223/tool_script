@@ -3,7 +3,7 @@
 
 DEPOT_TOOLS="depot_tools"
 SHOW_HELP_MENU=
-VERSION="1.0.4444"
+VERSION="1.0.4"
 GET_DEPOT_TOOL=
 CURRENT_LOCATION=$(pwd)
 export PATH=$PATH:/$(pwd)/depot_tools
@@ -86,7 +86,7 @@ main() {
       i) init_flag="true"
          branch_name="${OPTARG}" ;;
       s) repo_sync ;; 
-      c) cros_sdk ;;
+      c) crossdk ;;
       d) cros_del ;;
       r) cros_replace ;;
       *) die "invalid option found" ;;
