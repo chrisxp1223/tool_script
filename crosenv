@@ -9,7 +9,7 @@ CURRENT_LOCATION=$(pwd)
 export PATH=$PATH:/$(pwd)/depot_tools
 
 # Text STYLE variables
-#BOLD="\033[1m"
+BOLD="\033[1m"
 RED='\033[38;5;9m'
 GREEN='\033[38;5;2m'
 ORANGE_RED="\033[38;5;202m"
@@ -17,12 +17,12 @@ C_DODGERBLUE2="\033[38;5;27m"
 NC='\033[0m' # No Color
 
 
-_printf_color() {
-	printf "${1}%s" "$2"
-}
-
 _echo_color() {
 	printf "${1}%s${NC}\n" "$2"
+}
+_printf_color() {
+	printf "${1}%s" "$2"
+	_echo_color "${NC}" ""
 }
 
 help_menu () {
@@ -51,12 +51,9 @@ crosenv_version() {
 }
 
 repo_init() {
-    _printf_color "${GREEN}" "------> repo init"
-    _echo_color "${NC}" ""
-    _printf_color "${RED}" "repo init $1"
-    _echo_color "${NC}" ""
-    
-    
+    _printf_color "${BLUE}" "------> repo init"
+    echo "repo init $1"
+    _printf_color "${NC}" ""
     if [ "$1" = "ToT" ]; then
         repo init -u https://chromium.googlesource.com/chromiumos/manifest.git --repo-url https://chromium.googlesource.com/external/repo.git
     else
@@ -65,25 +62,25 @@ repo_init() {
 }
 
 repo_sync() {
-    _printf_color "${GREEN}" "------> repo sync"
-    _echo_color "${NC}" ""
-    repo sync
+    _printf_color "${BLUE}" "------> repo sync"
+    _printf_color "${NC}" ""
+    repo sync -n
 }
 
 cros_del() {
     _printf_color "${GREEN}" "------> cros  delete"
-    _echo_color "${NC}" ""
+    _printf_color "${NC}" ""
     cros_sdk --delete
 }
 
 cros_replace() {
     _printf_color "${GREEN}" "------> cros replace"
-    _echo_color "${NC}" ""
+    _printf_color "${NC}" ""
     cros_sdk --replace
 }
 crossdk(){
     _printf_color "${GREEN}" "------> cros_sdk"
-    _echo_color "${NC}" ""
+    _printf_color "${NC}" ""
     cros_sdk --no-ns-pid
 }
 
@@ -99,10 +96,9 @@ main() {
     local GET_DEPOT_TOOL="FLASE"
     local branch_name=""
     local init_flag="false"
-    if [ ! -d $(pwd)/depot_tools ]; then
-        get_depot_tool
-    fi
- 
+    local show_help=""
+    local getpot_ret=""
+
     while getopts 'vhi:scdr' flag; do
     case ${flag} in
       h) help_menu ;;
@@ -117,6 +113,10 @@ main() {
      esac
     done
 
+    if [ ! -d $(pwd)/depot_tools ]; then
+       get_depot_tool 
+    fi
+    
     if [ "$init_flag" = "true" ]; then
         repo_init ${branch_name}
     fi

@@ -1,15 +1,27 @@
-#!/bin/bash
-VERSION='1.0.0'
-SHOW_HELP_MENU=
+#!/bin/sh
+
+# Text STYLE variables
+BOLD="\033[1m"
+RED='\033[38;5;9m'
+GREEN='\033[38;5;2m'
+ORANGE_RED="\033[38;5;202m"
+C_DODGERBLUE2="\033[38;5;27m"
+
+VERSION='flashCB  v0.0.1'
 
 die() {
   echo "${0##*/}: error: $*" >&2
   exit 1
 }
 
-flash_cb_version() {
-  echo "flash coreboot version ${VERSION}"
+_echo_color() {
+	printf "${1}%s${NC}\n" "$2"
 }
+_printf_color() {
+	printf "${1}%s" "$2"
+	_echo_color "${NC}" ""
+}
+
 usage() {
   echo "Usage: flash_cb [board] [type] 
 
@@ -21,38 +33,37 @@ usage() {
   exit 0
 }
 
-get_board(){
-    echo $2
-    exit 0
+flash_image (){
+
+    _printf_color "${BOLD}" "------> flash start"
+    echo "flash" $1 with $2
+
 }
 
-get_type(){
-    echo $2
-    exit 0
-}
 ###############################################################################
 #
 #
 #
-args=$(getopt -l version,help,board,type -o vhb:t: -- "$@")
-getopt_ret=$?
-eval set -- "${args}"
+main () {
+    local board=""
+    local type=""
 
-if [ ${getopt_ret} != 0 ]; then
-    SHOW_HELP_MENU=1
-fi
- 
-while true ; do
-    case "$1" in
-      -v|--version)		shift; flash_cb_version; exit 0;;
-      -h|--help)		    shift; SHOW_HELP_MENU=1;;
-      -b|--board)		    shift; get_board;;
-      -t|--type)		    shift; get_type;;
-        --)			        shift; break;; 
-  esac
-  done
+    while getopts 'vhb:t:' flag; do
 
-if [ "${SHOW_HELP_MENU}" ]; then
-  usage
-  exit 0
-fi
+    case ${flag} in
+      v) echo "${VERSION}" ;;  
+      h) usage ;;
+      b) board="${OPTARG}" ;;
+      t) type="${OPTARG}" ;;
+      *) die "invalid option found" ;;
+    esac
+    done
+   
+    if [ -z $board ] || [ -z $type ]; then
+        usage
+    else
+        flash_image ${board} ${type}
+    fi
+}
+
+main "$@"
