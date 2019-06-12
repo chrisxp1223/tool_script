@@ -1,0 +1,84 @@
+#!/bin/bash
+
+VERSION="RSC 0.0.1"
+RED='\033[38;5;9m'
+NC='\033[0m' # No Color
+MODULES_PATH='/etc/modules'
+
+
+_echo_color() {
+	printf "${1}%s${NC}\n" "$2"
+}
+_echo_error() {
+	( >&2 _echo_color "${RED}" "$*" )
+    _echo_color "${NC}"
+}
+__checkutil() {
+	local util="$1"
+	local printstring="$2"
+
+	if ! command -v "${util}" > /dev/null 2>&1; then
+		_echo_error  "Error: ${util} not found in path."
+		if [ -n "$printstring" ]; then
+			_echo_error "$printstring"
+		fi
+        sudo apt-get install python-smbus
+        sudo apt-get install i2c-tools
+		exit 1
+	fi
+}
+
+__checkmodules() {
+    local filename='/etc/modules'
+    local config_flag='false' 
+    while IFS='' read -r line; do
+        if test "$line" = "i2c_bcm2705"; then
+            config_flag='ture'
+            break
+        fi
+    done < $filename
+    if test "$config_flag" = "false"; then
+        sudo bash -c "echo i2c_bcm2705 >> /etc/modules"
+        sudo bash -c "echo i2c_dev >> /etc/modules"
+    fi
+}
+
+__checkboot() {
+    local filename='/boot/config.txt' 
+    local boot_flag='false'
+    while IFS='' read -r line; do
+        if test "$line" = "dtparam=i2c1=on"; then
+            boot_flag='ture'
+            break
+        fi
+    done < $filename
+    if test "$boot_flag" = "false"; then
+        sudo bash -c "echo dtparam=i2c1=on >> /boot/config.txt"
+    fi
+}
+
+__checkConfigs() {
+    __checkmodules
+    __checkboot
+}
+
+main() {
+
+    echo ${VERSION}
+
+    __checkutil i2cdetect "prepare RSC tool environment, install i2c tools and python-smbus"
+    __checkConfigs 
+
+
+    if [ -f './RelayControlServer' ];then
+       sudo chmod +x ./RelayControlServer
+       sudo ./RelayControlServer
+    else 
+        echo "RelayControlServer not found"
+    fi
+
+}
+
+
+
+main "$@"
