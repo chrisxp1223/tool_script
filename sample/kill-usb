@@ -1,0 +1,126 @@
+#!/bin/bash -x
+
+# Plug a USB-C Super-Speed hub into the daughter board side of the device.
+# You should manually check that the device will renegotiate Super-Speed on a
+# reconnect. You can verify by doing the following:
+# $ lsusb -t
+# /:  Bus 03.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/4p, 5000M
+#     |__ Port 2: Dev 2, If 0, Class=Hub, Driver=hub/4p, 5000M <- You want this
+#
+# ectool usbpd 1 none
+# $ lsusb -t # Verify the hub has disappeared
+# /:  Bus 03.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/4p, 5000M
+#
+# $ ectool usbpd 1 usb
+# $ lsusb -t # Verify it came back
+# /:  Bus 03.Port 1: Dev 1, Class=root_hub, Driver=xhci_hcd/4p, 5000M
+#     |__ Port 2: Dev 2, If 0, Class=Hub, Driver=hub/4p, 5000M
+
+LOG_PATH=/usr/share/oem/
+
+declare -a PIDS
+
+function finish {
+
+  echo 'kill-usb ended' > /sys/kernel/debug/tracing/trace_marker
+
+  echo 0 > /sys/kernel/debug/tracing/tracing_enabled
+
+  while [[ $(cat /sys/kernel/debug/tracing/tracing_enabled) == "1" ]]; do
+    sleep .1
+  done
+
+  echo 1 > /sys/devices/system/cpu/cpu1/online
+
+  echo nop > /sys/kernel/debug/tracing/current_tracer
+
+  echo > /sys/kernel/debug/tracing/set_ftrace_filter
+
+  echo 'module xhci_hcd -p; module usbcore -p' > /sys/kernel/debug/dynamic_debug/control
+
+  # Leave the USB port enabled
+  ectool usbpd 1 usb
+
+  for pid in "${PIDS[@]}"
+  do
+    kill "$pid" || true
+
+    wait "$pid" || true
+  done
+}
+
+trap finish EXIT
+
+mount -o remount,rw,sync /usr/share/oem/
+
+# Disable CPU1 to make debugging easier
+#echo 0 > /sys/devices/system/cpu/cpu1/online
+# Just do affinity instead of disabling the whole cpu. It breaks tracing.
+echo 0 > /proc/irq/30/smp_affinity_list
+
+# Disable USB 3.0 and wait for it to settle before we get everything setup
+ectool usbpd 1 none
+sleep 5
+
+# Setup dynamic debug
+echo 'module xhci_hcd +p; module usbcore +p; module usbnet +p; module usbhid +p; module usb_storage +p; module ehci_hcd +p' > /sys/kernel/debug/dynamic_debug/control
+
+dmesg --console-level info
+
+# Setup tracing
+echo 0 > /sys/kernel/debug/tracing/tracing_enabled
+
+echo 'xhci-hcd:* cros-ec:*' > /sys/kernel/debug/tracing/set_event
+
+echo 'xhci_* usb_* hub_* hcd_' > /sys/kernel/debug/tracing/set_ftrace_filter
+
+echo 256 > /sys/kernel/debug/tracing/buffer_size_kb
+
+echo 'xhci_dma_to_transfer_ring xhci_trb_virt_to_dma xhci_get_ep_ctx xhci_dbg_trace' > /sys/kernel/debug/tracing/set_ftrace_notrace
+
+echo function_graph > /sys/kernel/debug/tracing/current_tracer
+
+echo 1 > /proc/sys/kernel/ftrace_dump_on_oops
+
+
+
+rm -rf "$LOG_PATH/xhci-trace" "$LOG_PATH/xhci-dmesg"
+
+dmesg -C
+
+cat /sys/kernel/debug/tracing/trace_pipe > "$LOG_PATH/xhci-trace" &
+PIDS+=("$!")
+
+dmesg -w > "$LOG_PATH/xhci-dmesg" &
+PIDS+=("$!")
+
+# wait for the log to show up
+while [ ! -e "$LOG_PATH/xhci-dmesg" ]; do
+  sleep .1
+done
+
+# tail -f "$LOG_PATH/xhci-dmesg" &
+# PIDS+=("$!")
+
+iteration=0
+
+echo 1 > /sys/kernel/debug/tracing/tracing_enabled
+
+echo 'Starting kill-usb' > /sys/kernel/debug/tracing/trace_marker
+
+while true; do
+  msg="Enabling USB 3.0. iteration: ${iteration}"
+  echo "$msg" > /dev/kmsg
+  echo "$msg" > /sys/kernel/debug/tracing/trace_marker
+  ectool usbpd 1 usb
+  sleep .3
+
+  msg="Disabling USB 3.0. iteration: ${iteration}"
+  echo "$msg" > /dev/kmsg
+  echo "$msg" > /sys/kernel/debug/tracing/trace_marker
+  ectool usbpd 1 none
+  sleep 2
+  # lsusb -t
+
+  iteration=$((iteration+1))
+done
