@@ -11,8 +11,27 @@
 # Input: board name
 # Output: coreboot_$(board).rom
 
+ENV_TOOLCHAIN=0
 COREBOOT_GENTOOL_VERSION=0
 FILESDIR=$(pwd)
+
+BOLD="\033[1m"
+RED='\033[38;5;9m'
+BLUE='\033[38;5;12m'
+GREEN='\033[38;5;2m'
+ORANGERED="\033[38;5;202m"
+C_DODGERBLUE2="\033[38;5;27m"
+C_TURQUOISE2="\033[38;5;45m"
+NC='\033[0m' # No Color
+
+
+_echo_color() {
+	printf "${1}%s${NC}\n" "$2"
+}
+_printf_color() {
+	printf "${1}%s" "$2"
+	_echo_color "${NC}" ""
+}
 
 env_prepare ()
 {
@@ -25,14 +44,12 @@ env_prepare ()
   
     set_build_env  
     set_config ${BOARD} 
-    exit 0
 }
 
 set_build_env () {
 
-    sudo apt-get install -y bison build-essential curl flex git gnat-5 libncurses5-dev m4 zlib1g-dev
+    sudo apt-get install -y bison build-essential curl flex git libncurses5-dev m4 zlib1g-dev
     make crossgcc-i386 CPUS=$(nproc)
-
 }
 
 set_config()
@@ -46,14 +63,23 @@ set_config()
 
 make_coreboot () {
 
-    yes "" | make 
+    make clean
+    make olddefconfig
+    if ! make -j; then
+      _echo_error "Error: coreboot build did not complete successfully"
+      exit 1
+    fi
+
     cp "${BUILD_DIR}/coreboot.rom" "${FILESDIR}/coreboot_${BOARD}.rom"
 
 }
 
 main () {
+
     local build_target="$1" 
+
     env_prepare ${build_target}
+
     make_coreboot
 }
 
