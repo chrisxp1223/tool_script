@@ -65,7 +65,7 @@ suspend_test_main () {
     echo "" >> $logfile
 
     _printf_color "${RED}" "Suspend stress testing...... press ctrl + c to stop "
-    suspend_stress_test -c $1 --wake_min=$2 --suspend_min=$3 --suspend_max=$4 --record_dmesg_dir=$logdir >> $logfile 
+    suspend_stress_test -c $1 --wake_min=$2 --suspend_min=$3 --suspend_max=$4 --record_dmesg_dir=$logdir | tee $logfile 
 
 
     cat /sys/kernel/debug/amd_pmc/s0ix_stats >> $logfile
