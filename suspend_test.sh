@@ -11,6 +11,11 @@ NC='\033[0m' # No Color
 VERSION="1.0.0"
 
 logdir="/var/log/suspend_result"
+
+# Check if the folder exists, if not then create it
+if [ ! -d "$logdir" ]; then
+    sudo mkdir -p "$logdir"
+fi
 logfile="$logdir/suspend_result-$(date -Iseconds).log"
 date -Iseconds > "$logfile"
 
@@ -36,12 +41,26 @@ print_log_start () {
     logger "#########################################"
     logger "          Suspend test start             "
     logger "#########################################"
+
+    echo "#################################" >> "$logfile"
+    echo "      Suspend test start "         >> "$logfile"
+    echo "#################################" >> "$logfile"
+}
+
+print_blink_to_file () {
+    echo "" >> "$logfile"
+    echo "" >> "$logfile"
+    echo "" >> "$logfile"
 }
 
 print_log_end () {
     logger "#########################################"
     logger "          Suspend test end              "
     logger "#########################################"
+
+    echo "#################################" >> "$logfile"
+    echo "      Suspend test end "         >> "$logfile"
+    echo "#################################" >> "$logfile"
 }
 
 help_menu () {
@@ -58,29 +77,16 @@ help_menu () {
 
 suspend_test_main () {
 
-    echo "#################################" >> "$logfile"
-    echo "      Suspend test start "         >> "$logfile"
-    echo "#################################" >> "$logfile"
-
-    print_log_start
-
     crossystem | grep "fwid" >> "$logfile"
-    echo "" >> "$logfile"
-    echo "" >> "$logfile"
-    echo "" >> "$logfile"
+    print_blink_to_file
 
     _printf_color "${RED}" "Suspend stress testing...... press ctrl + c to stop "
-    suspend_stress_test -c "$1" --wake_min="$2" --suspend_min="$3" --suspend_max="$4" --record_dmesg_dir="$logdir" | tee "$logfile"
+    suspend_stress_test -c "$1" --wake_min="$2" --suspend_min="$3" --suspend_max="$4" --record_dmesg_dir="$logdir" | tee -a "$logfile"
+
+    print_blink_to_file
 
     cat /sys/kernel/debug/amd_pmc/s0ix_stats >> "$logfile"
-    print_log_end
 
-    echo "" >> "$logfile"
-    echo "" >> "$logfile"
-    echo "" >> "$logfile"
-    echo "#################################" >> "$logfile"
-    echo "      Suspend test end "         >> "$logfile"
-    echo "#################################" >> "$logfile
 }
 
 main () {
@@ -109,11 +115,9 @@ main () {
     _printf_color "${GREEN}" "suspend_max : ${suspend_max} "
     _printf_color "${GREEN}" "cycles : ${cycles} "
     
-    if [ ! -d "$logdir" ]; then
-        echo "$logdir does exist."
-        mkdir "$logdir"
-    fi
+    print_log_start
     suspend_test_main "$cycles" "$wake_delay_s" "$suspend_min" "$suspend_max"
+    print_log_end
 }
 
 main "$@"
