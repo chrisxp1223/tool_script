@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 set -e
 set -u
 set -o pipefail
@@ -13,7 +14,12 @@ readonly RED='\033[38;5;9m'
 readonly GREEN='\033[38;5;2m'
 readonly ORANGE_RED="\033[38;5;202m"
 readonly C_DODGERBLUE2="\033[38;5;27m"
+readonly LIGHT_BULE='\033[38;5;12m'
+readonly YELLOW='\033[38;5;226m'
 readonly NC='\033[0m' # No Color
+
+CURRENT_LOCATION=$(pwd)
+export PATH=$PATH:/$(pwd)/depot_tools
 
 get_depot_tool() {
   local answer
@@ -30,7 +36,8 @@ crosenv_version() {
 
 repo_init() {
   local branch_name="$1"
-  printf "------> repo init\n"
+  # print repo init with yellow color
+  printf -- "${YELLOW}------> repo init${NC}\n"
   if [[ "$branch_name" == "ToT" ]]; then
     repo init -u https://chromium.googlesource.com/chromiumos/manifest.git --repo-url https://chromium.googlesource.com/external/repo.git -b stable
   else
@@ -39,22 +46,25 @@ repo_init() {
 }
 
 repo_sync() {
-  printf "------> repo sync\n"
+  #print repo sync with light bule color
+  printf -- "${LIGHT_BULE}------> repo sync${NC}\n"
   repo sync --force-sync -j100
 }
 
 cros_del() {
-  printf "------> cros_sdk --delete\n"
+  # print cros_sdk --delete with red color
+  printf -- "${RED}------> cros_sdk --delete${NC}\n"
   cros_sdk --delete
 }
 
 cros_replace() {
-  printf "------> cros_sdk --replace\n"
+  printf -- "------> cros_sdk --replace\n"
   cros_sdk --replace
 }
 
 crossdk() {
-  printf "------> cros_sdk\n"
+  # print cros_sdk with green color
+  printf -- "${GREEN}------> cros_sdk${NC}\n"
   cros_sdk --no-ns-pid
 }
 
