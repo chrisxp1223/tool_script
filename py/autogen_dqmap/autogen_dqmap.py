@@ -57,18 +57,134 @@ def parse_dqmap_content(content):
 
     Returns:
         tuple: (list, list) - A tuple containing the list of offsets and the list
-                 of data groups. Returns (None, None) if parsing fails or is
-                 not implemented yet.
+               of data groups. Returns (None, None) if parsing fails.
     """
-    # TODO: Implement the actual parsing logic here.
-    # This is a placeholder implementation.
     print("Parsing dqmap.md content...")
-    # Example: Look for specific patterns or tables in the markdown content.
-    # For now, it just returns None, None to indicate parsing is not done.
-    offsets = None
-    data_groups = None
-    print("Parsing logic not yet implemented.")
-    return offsets, data_groups
+    
+    try:
+        # Initialize the mapping structure for each channel and side
+        mapping = {
+            'MAA': {'lower': [None]*8, 'upper': [None]*8},
+            'MAB': {'lower': [None]*8, 'upper': [None]*8},
+            'MBA': {'lower': [None]*8, 'upper': [None]*8},
+            'MBB': {'lower': [None]*8, 'upper': [None]*8},
+            'MCA': {'lower': [None]*8, 'upper': [None]*8},
+            'MCB': {'lower': [None]*8, 'upper': [None]*8},
+            'MDA': {'lower': [None]*8, 'upper': [None]*8},
+            'MDB': {'lower': [None]*8, 'upper': [None]*8}
+        }
+        
+        # Flag to track the current section we're parsing
+        current_section = None
+        is_b_side = False
+        
+        # Split the content into lines for processing
+        lines = content.strip().split('\n')
+        
+        # Process each line
+        for line in lines:
+            # Identify which section we're in
+            if "[7:0] Lower Byte Group" in line and "B Side" not in line:
+                current_section = "lower"
+                is_b_side = False
+            elif "[15:8] Upper Byte Group" in line and "B Side" not in line:
+                current_section = "upper"
+                is_b_side = False
+            elif "[7:0] Lower Byte Group (B Side)" in line:
+                current_section = "lower"
+                is_b_side = True
+            elif "[15:8] Upper Byte Group (B Side)" in line:
+                current_section = "upper"
+                is_b_side = True
+            
+            # Skip header rows and empty lines
+            if line.startswith('|') and "DRAM DQ Lane" not in line and "---" not in line:
+                # Parse the table row
+                parts = line.split('|')
+                if len(parts) >= 6:  # Ensure valid row format
+                    # Extract DQ lane number
+                    dq_lane = int(parts[1].strip().replace("DQ", ""))
+                    
+                    # Extract pin numbers for each channel
+                    channel_a_pin = int(parts[2].strip())
+                    channel_b_pin = int(parts[3].strip())
+                    channel_c_pin = int(parts[4].strip())
+                    channel_d_pin = int(parts[5].strip())
+                    
+                    # Store in the appropriate section and side
+                    if not is_b_side:  # A side
+                        if current_section == "lower":
+                            mapping['MAA']['lower'][dq_lane] = channel_a_pin
+                            mapping['MBA']['lower'][dq_lane] = channel_b_pin
+                            mapping['MCA']['lower'][dq_lane] = channel_c_pin
+                            mapping['MDA']['lower'][dq_lane] = channel_d_pin
+                        else:  # upper
+                            mapping['MAA']['upper'][dq_lane-8] = channel_a_pin
+                            mapping['MBA']['upper'][dq_lane-8] = channel_b_pin
+                            mapping['MCA']['upper'][dq_lane-8] = channel_c_pin
+                            mapping['MDA']['upper'][dq_lane-8] = channel_d_pin
+                    else:  # B side
+                        if current_section == "lower":
+                            mapping['MAB']['lower'][dq_lane] = channel_a_pin
+                            mapping['MBB']['lower'][dq_lane] = channel_b_pin
+                            mapping['MCB']['lower'][dq_lane] = channel_c_pin
+                            mapping['MDB']['lower'][dq_lane] = channel_d_pin
+                        else:  # upper
+                            mapping['MAB']['upper'][dq_lane-8] = channel_a_pin
+                            mapping['MBB']['upper'][dq_lane-8] = channel_b_pin
+                            mapping['MCB']['upper'][dq_lane-8] = channel_c_pin
+                            mapping['MDB']['upper'][dq_lane-8] = channel_d_pin
+        
+        # Default offsets (these should be configured based on your specific needs)
+        # For example: offsets for MAA, MAB, MBA, MBB, etc.
+        offsets = [16, 24, 0, 8, 16, 24, 0, 8, 16, 24, 0, 8, 16, 24, 0, 8]
+        
+        # Extract data groups in the specified order
+        data_groups = [
+            mapping['MAA']['lower'],  # Group 1: MAA lower (DQ0-DQ7)
+            mapping['MAA']['upper'],  # Group 2: MAA upper (DQ8-DQ15)
+            mapping['MAB']['lower'],  # Group 3: MAB lower (DQ0-DQ7)
+            mapping['MAB']['upper'],  # Group 4: MAB upper (DQ8-DQ15)
+            mapping['MBA']['lower'],  # Group 5: MBA lower (DQ0-DQ7)
+            mapping['MBA']['upper'],  # Group 6: MBA upper (DQ8-DQ15)
+            mapping['MBB']['lower'],  # Group 7: MBB lower (DQ0-DQ7)
+            mapping['MBB']['upper'],  # Group 8: MBB upper (DQ8-DQ15)
+            mapping['MCA']['lower'],  # Group 9: MCA lower (DQ0-DQ7)
+            mapping['MCA']['upper'],  # Group 10: MCA upper (DQ8-DQ15)
+            mapping['MCB']['lower'],  # Group 11: MCB lower (DQ0-DQ7)
+            mapping['MCB']['upper'],  # Group 12: MCB upper (DQ8-DQ15)
+            mapping['MDA']['lower'],  # Group 13: MDA lower (DQ0-DQ7)
+            mapping['MDA']['upper'],  # Group 14: MDA upper (DQ8-DQ15)
+            mapping['MDB']['lower'],  # Group 15: MDB lower (DQ0-DQ7)
+            mapping['MDB']['upper']   # Group 16: MDB upper (DQ8-DQ15)
+        ]
+        
+        # Print all groups for user validation
+        print("\n--- Parsed DQ Groups ---")
+        for i, (channel, section) in enumerate(zip(
+            ['MAA', 'MAA', 'MAB', 'MAB', 'MBA', 'MBA', 'MBB', 'MBB',
+             'MCA', 'MCA', 'MCB', 'MCB', 'MDA', 'MDA', 'MDB', 'MDB'],
+            ['lower', 'upper', 'lower', 'upper', 'lower', 'upper', 'lower', 'upper',
+             'lower', 'upper', 'lower', 'upper', 'lower', 'upper', 'lower', 'upper']
+        )):
+            group_num = i + 1
+            print(f"Group {group_num}: {channel}-{section} (DQ{'0-7' if section=='lower' else '8-15'}): {data_groups[i]}")
+        print("--- End of Parsed DQ Groups ---\n")
+        
+        # Validate the data
+        for i, group in enumerate(data_groups):
+            if None in group:
+                print(f"Warning: Group {i+1} contains None values: {group}")
+                # Replace None with 0 for simplicity
+                data_groups[i] = [0 if x is None else x for x in group]
+        
+        return offsets, data_groups
+        
+    except Exception as e:
+        print(f"Error parsing dqmap.md content: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None, None
 
 def generate_mem_data_groups(offsets, data_groups):
     result = []
