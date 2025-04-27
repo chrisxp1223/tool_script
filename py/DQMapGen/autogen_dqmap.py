@@ -13,51 +13,55 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import os
+import sys # Import the sys module for exiting on error
+import itertools # Import itertools for flattening lists
 
 
-def read_dqmap_file():
+def read_dqmap_file(file_path):
     """
-    Check if dqmap.md exists and read its contents.
-    
+    Check if a given file exists and read its contents.
+
+    Args:
+        file_path (str): The path to the dqmap file to read.
+
     Returns:
         tuple: (bool, str) - (success status, file contents or error message)
     """
     try:
-        file_path = "dqmap.md"
-        
+        # Use the provided file_path argument
         # Check if file exists
         if not os.path.exists(file_path):
-            return False, f"Error: {file_path} not found"
-            
+            return False, f"Error: File not found at {file_path}"
+
         # Read file contents
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
-            
+
         if not content:
-            return False, f"Error: {file_path} is empty"
-        
-                # --- Print the content if successfully read ---
-        print("\n--- Content of dqmap.md ---")
+            return False, f"Error: File is empty at {file_path}"
+
+        # --- Print the content if successfully read ---
+        print(f"\n--- Content of {os.path.basename(file_path)} ---") # Use basename for cleaner print
         print(content)
-        print("--- End of dqmap.md Content ---\n")
+        print(f"--- End of {os.path.basename(file_path)} Content ---\n")
         # ---------------------------------------------
 
         # Return True and the content
         return True, content
-        
+
     except Exception as e:
-        return False, f"Error reading file: {str(e)}"
+        return False, f"Error reading file {file_path}: {str(e)}"
 
 def parse_dqmap_content(content):
     """
-    Parses the content of the dqmap.md file to extract offsets and data groups.
+    Parses the content of the dqmap.md file to extract data groups.
 
     Args:
         content (str): The content read from the dqmap.md file.
 
     Returns:
-        tuple: (list, list) - A tuple containing the list of offsets and the list
-               of data groups. Returns (None, None) if parsing fails.
+        list or None: A list containing 16 lists (data groups),
+                      or None if parsing fails.
     """
     print("Parsing dqmap.md content...")
     
@@ -83,61 +87,59 @@ def parse_dqmap_content(content):
         
         # Process each line
         for line in lines:
-            # Identify which section we're in
-            if "[7:0] Lower Byte Group" in line and "B Side" not in line:
-                current_section = "lower"
-                is_b_side = False
-            elif "[15:8] Upper Byte Group" in line and "B Side" not in line:
-                current_section = "upper"
-                is_b_side = False
-            elif "[7:0] Lower Byte Group (B Side)" in line:
-                current_section = "lower"
-                is_b_side = True
-            elif "[15:8] Upper Byte Group (B Side)" in line:
-                current_section = "upper"
-                is_b_side = True
+            line = line.strip()
+            # Skip empty lines
+            if not line:
+                continue
+
+            # Identify which section we're in based on the markdown headers
+            if line.startswith('###'):
+                if '[7:0]' in line:
+                    current_section = 'lower'
+                elif '[15:8]' in line:
+                    current_section = 'upper'
+                
+                # Check if this is B side by looking at the channel names in parentheses
+                if 'MAB/MBB/MCB/MDB' in line:
+                    is_b_side = True
+                elif 'MAA/MBA/MCA/MDA' in line:
+                    is_b_side = False
+                print(f"Section: {current_section}, B side: {is_b_side}")
+                continue
             
             # Skip header rows and empty lines
             if line.startswith('|') and "DRAM DQ Lane" not in line and "---" not in line:
                 # Parse the table row
-                parts = line.split('|')
-                if len(parts) >= 6:  # Ensure valid row format
-                    # Extract DQ lane number
-                    dq_lane = int(parts[1].strip().replace("DQ", ""))
-                    
-                    # Extract pin numbers for each channel
-                    channel_a_pin = int(parts[2].strip())
-                    channel_b_pin = int(parts[3].strip())
-                    channel_c_pin = int(parts[4].strip())
-                    channel_d_pin = int(parts[5].strip())
-                    
-                    # Store in the appropriate section and side
-                    if not is_b_side:  # A side
-                        if current_section == "lower":
-                            mapping['MAA']['lower'][dq_lane] = channel_a_pin
-                            mapping['MBA']['lower'][dq_lane] = channel_b_pin
-                            mapping['MCA']['lower'][dq_lane] = channel_c_pin
-                            mapping['MDA']['lower'][dq_lane] = channel_d_pin
-                        else:  # upper
-                            mapping['MAA']['upper'][dq_lane-8] = channel_a_pin
-                            mapping['MBA']['upper'][dq_lane-8] = channel_b_pin
-                            mapping['MCA']['upper'][dq_lane-8] = channel_c_pin
-                            mapping['MDA']['upper'][dq_lane-8] = channel_d_pin
-                    else:  # B side
-                        if current_section == "lower":
-                            mapping['MAB']['lower'][dq_lane] = channel_a_pin
-                            mapping['MBB']['lower'][dq_lane] = channel_b_pin
-                            mapping['MCB']['lower'][dq_lane] = channel_c_pin
-                            mapping['MDB']['lower'][dq_lane] = channel_d_pin
-                        else:  # upper
-                            mapping['MAB']['upper'][dq_lane-8] = channel_a_pin
-                            mapping['MBB']['upper'][dq_lane-8] = channel_b_pin
-                            mapping['MCB']['upper'][dq_lane-8] = channel_c_pin
-                            mapping['MDB']['upper'][dq_lane-8] = channel_d_pin
-        
-        # Default offsets (these should be configured based on your specific needs)
-        # For example: offsets for MAA, MAB, MBA, MBB, etc.
-        offsets = [16, 24, 0, 8, 16, 24, 0, 8, 16, 24, 0, 8, 16, 24, 0, 8]
+                parts = [p.strip() for p in line.split('|') if p.strip()]
+                if len(parts) >= 5:  # Ensure valid row format (at least 5 parts after splitting and cleaning)
+                    try:
+                        # Extract DQ lane number
+                        dq_lane = int(parts[0].replace("DQ", ""))
+                        
+                        # Extract pin numbers for each channel
+                        channel_a_pin = int(parts[1])
+                        channel_b_pin = int(parts[2])
+                        channel_c_pin = int(parts[3])
+                        channel_d_pin = int(parts[4])
+                        
+                        # Calculate correct index for upper section
+                        idx = dq_lane if current_section == 'lower' else dq_lane - 8
+                        
+                        # Store in the appropriate section and side
+                        if not is_b_side:  # A side
+                            mapping['MAA'][current_section][idx] = channel_a_pin
+                            mapping['MBA'][current_section][idx] = channel_b_pin
+                            mapping['MCA'][current_section][idx] = channel_c_pin
+                            mapping['MDA'][current_section][idx] = channel_d_pin
+                        else:  # B side
+                            mapping['MAB'][current_section][idx] = channel_a_pin
+                            mapping['MBB'][current_section][idx] = channel_b_pin
+                            mapping['MCB'][current_section][idx] = channel_c_pin
+                            mapping['MDB'][current_section][idx] = channel_d_pin
+                    except (ValueError, IndexError) as e:
+                        print(f"Warning: Could not parse line: {line}")
+                        print(f"Error details: {str(e)}")
+                        continue
         
         # Extract data groups in the specified order
         data_groups = [
@@ -178,94 +180,215 @@ def parse_dqmap_content(content):
                 # Replace None with 0 for simplicity
                 data_groups[i] = [0 if x is None else x for x in group]
         
-        return offsets, data_groups
+        return data_groups
         
     except Exception as e:
         print(f"Error parsing dqmap.md content: {str(e)}")
         import traceback
         traceback.print_exc()
-        return None, None
+        return None
 
 def generate_mem_data_groups(offsets, data_groups):
+    """
+    Generate memory data groups based on offsets and data groups.
+    
+    Args:
+        offsets: List of offsets for each channel [MA0,MA8,MA16,MA24, MB0,MB8,MB16,MB24, ...]
+        data_groups: List of DQ pin mappings for each channel
+    
+    Returns:
+        List of processed groups with MEM_MX_DATA_XX format
+    """
     result = []
-
-    for offset, group in zip(offsets, data_groups):
-        processed_group = []
-        for num in group:
-            # Apply rule: subtract 8 if num > 8
-            if num >= 8:
-                num -= 8
-            # Add offset and format
-            value = num + offset
-            processed_group.append(f"MEM_MX_DATA_{value:02d}")
-        result.append(processed_group)
-
+    
+    # Process each channel (MA, MB, MC, MD)
+    for channel_idx in range(4):  # 4 channels: MA, MB, MC, MD
+        # Get the base offsets for this channel (4 offsets per channel)
+        channel_offsets = offsets[channel_idx * 4:(channel_idx + 1) * 4]
+        
+        # Process A-side lower byte group
+        a_lower_group = []
+        a_data = data_groups[channel_idx * 4]  # Get A-side lower byte data
+        for dq_idx, pin in enumerate(a_data):
+            # Determine which offset to use (0-7 maps to first offset)
+            offset = channel_offsets[0]  # Use first offset for lower byte
+            value = pin
+            if value >= 8:
+                value -= 8
+            value += offset
+            a_lower_group.append(f"MEM_MX_DATA_{value:02d}")
+        result.append(a_lower_group)
+        
+        # Process A-side upper byte group
+        a_upper_group = []
+        a_data = data_groups[channel_idx * 4 + 1]  # Get A-side upper byte data
+        for dq_idx, pin in enumerate(a_data):
+            # Determine which offset to use (8-15 maps to second offset)
+            offset = channel_offsets[1]  # Use second offset for upper byte
+            value = pin
+            if value >= 8:
+                value -= 8
+            value += offset
+            a_upper_group.append(f"MEM_MX_DATA_{value:02d}")
+        result.append(a_upper_group)
+        
+        # Process B-side lower byte group
+        b_lower_group = []
+        for dq_idx in range(8):
+            # Use third offset for B-side lower byte
+            offset = channel_offsets[2]
+            value = dq_idx + offset
+            b_lower_group.append(f"MEM_MX_DATA_{value:02d}")
+        result.append(b_lower_group)
+        
+        # Process B-side upper byte group
+        b_upper_group = []
+        for dq_idx in range(8):
+            # Use fourth offset for B-side upper byte
+            offset = channel_offsets[3]
+            value = dq_idx + offset
+            b_upper_group.append(f"MEM_MX_DATA_{value:02d}")
+        result.append(b_upper_group)
+    
     return result
 
-def get_user_input():
-    try:
-        # Get offsets
-        print("Enter 4 offset values (space-separated, e.g., '16 24 0 8'):")
-        offsets = list(map(int, input().strip().split()))
-        if len(offsets) != 4:
-            raise ValueError("Must enter exactly 4 offset values")
+def get_offsets_interactively():
+    """
+    Interactively prompts the user to enter 4 offsets (0, 8, 16, 24) for each
+    channel (MA, MB, MC, MD), using a two-line prompt format.
+    Validates the input for each channel and re-prompts if invalid.
 
-        # Get data groups
-        data_groups = []
-        print("\nEnter 4 groups of 8 numbers (space-separated)")
-        print("Enter one group per line:")
-        for i in range(4):
-            group = list(map(int, input().strip().split()))
-            if len(group) != 8:
-                raise ValueError(f"Group {i+1} must contain exactly 8 numbers")
-            data_groups.append(group)
+    Returns:
+        list[list[int]]: A list containing 4 lists. Each inner list contains
+                         the 4 integer offsets [0, 8, 16, 24] entered for
+                         MA, MB, MC, and MD channels respectively.
+                         Exits if valid input cannot be obtained (e.g., user interruption).
+    """
+    expected_offsets = {0, 8, 16, 24} # Use a set for easy comparison, order doesn't matter
+    channel_names = ["MA", "MB", "MC", "MD"] # Define the channel names
+    all_offset_groups = [] # Initialize the list to store the offset groups for each channel
 
-        return offsets, data_groups
+    print("Please enter the offset values (0 8 16 24) for each channel:")
 
-    except ValueError as e:
-        print(f"Error: {e}")
-        return None, None
+    for channel in channel_names: # Loop through each channel name
+        current_channel_offsets = None # Initialize the variable for the current channel's offsets
+
+        while current_channel_offsets is None: # Keep asking until valid offsets are received
+            # Print the channel name prompt without a newline
+            print(f"{channel}: ", end="")
+            # Flush the output buffer to ensure the prompt appears before input is read
+            sys.stdout.flush()
+            try:
+                # Read user input from the same line
+                user_input = input().strip() # Read input without an inline prompt
+
+                # If the user just pressed Enter or entered only spaces, prompt again
+                if not user_input:
+                    # Re-print the prompt for clarity if input was empty
+                    print(f"Error: No input provided for {channel}. Please try again.")
+                    continue
+
+                # Split the input string by spaces and try to convert each part to an integer
+                input_parts = user_input.split()
+                entered_offsets = [int(part) for part in input_parts]
+
+                # --- Validation Stage ---
+
+                # 1. Check if exactly 4 items were entered
+                if len(entered_offsets) != 4:
+                    print(f"Error: Exactly 4 offsets are required for channel {channel}. You entered {len(entered_offsets)}. Please try again.")
+                    continue # Go back to the start of the loop to re-prompt for this channel
+
+                # 2. Check if the entered values are exactly {0, 8, 16, 24} (using set comparison)
+                entered_set = set(entered_offsets)
+                if entered_set != expected_offsets:
+                    print(f"Error: Channel {channel} offsets must be exactly 0, 8, 16, 24.")
+                    print(f"      You entered: {entered_offsets}")
+                    print(f"      Expected: {sorted(list(expected_offsets))}") # Show expected values sorted for clarity
+                    continue # Go back to the start of the loop to re-prompt for this channel
+
+                # --- Validation Passed ---
+                current_channel_offsets = entered_offsets # Assign the validated list
+                # print(f"✅ {channel} offsets accepted: {current_channel_offsets}") # Optional confirmation
+
+            except ValueError:
+                # Handles the case where int(part) fails (user entered non-numeric input)
+                print(f"Error: Offsets for {channel} must be valid integers. Please check your input.")
+                # Continue the loop to re-prompt for this channel
+            except EOFError:
+                # Handles Ctrl+D (Linux/macOS) or Ctrl+Z+Enter (Windows) during input()
+                print("\nError: End of input detected. Cannot get offsets. Exiting.")
+                sys.exit(1) # Terminate the script
+            except KeyboardInterrupt:
+                # Handles Ctrl+C during input()
+                print("\nOperation interrupted by user. Exiting.")
+                sys.exit(1) # Terminate the script
+
+        # Once a valid set of offsets is entered for the channel, add it to the list
+        all_offset_groups.append(current_channel_offsets)
+
+    return all_offset_groups # Return the validated list containing 4 lists of offsets
 
 if __name__ == "__main__":
-    offsets = None
-    data_groups = None
-    parameters_obtained = False # Flag to track if we got parameters
+    # --- Configuration ---
+    dqmap_filename = "dqmap_rmb.md" # Define the filename variable here
 
-    # Try reading the file first
-    success, file_content_or_error = read_dqmap_file()
+    # Initialize variables
+    data_groups = None
+    interactive_offsets = None # Initialize interactive_offsets
+    parameters_obtained = False # Flag to track if we got the necessary parameters
+
+    # --- Step 1: Get interactive offsets --- REQUIRE this to succeed
+    print("Attempting to get offsets interactively...")
+    interactive_offsets = get_offsets_interactively()
+
+    if not interactive_offsets:
+        # Function should exit on failure, but handle defensively
+        print("Error: Failed to obtain valid offsets interactively. Program cannot continue.")
+        sys.exit(1)
+    else:
+        print("\nSuccessfully obtained user offsets interactively:")
+        print(interactive_offsets)
+        # Flatten the interactive_offsets into a single list
+        flattened_offsets = list(itertools.chain.from_iterable(interactive_offsets))
+        print("\nFlattened offsets:")
+        print(flattened_offsets)
+
+    # --- Step 2: Try reading and parsing the file for data_groups --- REQUIRE this to succeed too
+    print(f"\nAttempting to read and parse {dqmap_filename} for data groups...")
+    success, file_content_or_error = read_dqmap_file(dqmap_filename)
 
     if success:
-        # File was read successfully. Content is in file_content_or_error
-        print("dqmap.md file content loaded successfully.")
-        # Attempt to parse the content
-        offsets, data_groups = parse_dqmap_content(file_content_or_error)
+        print(f"{dqmap_filename} file content loaded successfully.")
+        # Attempt to parse the content - Now only returns data_groups or None
+        parsed_data_groups = parse_dqmap_content(file_content_or_error)
 
-        if offsets is not None and data_groups is not None:
-            print("Successfully parsed parameters from dqmap.md.")
-            parameters_obtained = True
+        # Check if parsing was successful (got data_groups)
+        if parsed_data_groups is not None:
+            print(f"Successfully parsed data groups from {dqmap_filename}.")
+            data_groups = parsed_data_groups # Assign the successfully parsed groups
+            parameters_obtained = True # We have both interactive_offsets and data_groups
         else:
-            # Parsing failed or not implemented, fall back to manual input
-            print("Could not parse parameters from dqmap.md. Please provide parameters manually.")
-            offsets, data_groups = get_user_input()
-            if offsets is not None and data_groups is not None:
-                parameters_obtained = True
+            # Parsing failed
+            print(f"Error: Could not parse necessary data_groups from {dqmap_filename}.")
+            parameters_obtained = False
     else:
-        # File reading failed (not found or empty)
-        print(file_content_or_error) # Print the specific error from read_dqmap_file
-        print("Attempting to get parameters via manual input.")
-        offsets, data_groups = get_user_input()
-        if offsets is not None and data_groups is not None:
-            parameters_obtained = True # Got parameters from user
+        # File reading failed
+        print(f"Error reading file: {file_content_or_error}")
+        print(f"Cannot proceed without {dqmap_filename} file.")
+        parameters_obtained = False
 
-
-    # Proceed only if parameters were obtained (either from file parsing OR user input)
+    # --- Step 3: Proceed only if BOTH interactive offsets AND data groups were obtained ---
     if parameters_obtained:
-        print("\nGenerating MEM data groups...")
-        groups = generate_mem_data_groups(offsets, data_groups)
-        for group in groups:
-            print("{ " + ", ".join(group) + " },\n")
+        print(f"\nGenerating MEM data groups using interactive offsets and data groups from {dqmap_filename}...")
+        # Pass the FLATTENED offsets and the parsed data_groups
+        groups = generate_mem_data_groups(flattened_offsets, data_groups)
+        if groups: # Check if generation was successful
+            for group in groups:
+                print("{ " + ", ".join(group) + " },\n")
+        else:
+            print("Generation of MEM data groups failed.")
     else:
-        # This block is reached if file wasn't found AND user input failed/was cancelled,
-        # OR if file WAS found but parsing failed (once implemented) AND subsequent user input failed.
-        print("Could not obtain necessary parameters. Program terminated.")
-        exit(1)
+        # This block is reached if interactive offsets failed, file wasn't found, OR parsing failed.
+        print(f"\nCould not obtain necessary parameters (interactive offsets and/or data groups from {dqmap_filename}). Program terminated.")
+        sys.exit(1) # Exit with an error status
