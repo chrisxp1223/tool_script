@@ -88,6 +88,7 @@ def parse_dqmap_content(content):
         # Process each line
         for line in lines:
             line = line.strip()
+
             # Skip empty lines
             if not line:
                 continue
@@ -255,79 +256,74 @@ def generate_mem_data_groups(offsets, data_groups):
 def get_offsets_interactively():
     """
     Interactively prompts the user to enter 4 offsets (0, 8, 16, 24) for each
-    channel (MA, MB, MC, MD), using a two-line prompt format.
-    Validates the input for each channel and re-prompts if invalid.
-
+    channel (MA, MB, MC, MD). Enter 'd' once to apply default values to all channels.
+    
     Returns:
-        list[list[int]]: A list containing 4 lists. Each inner list contains
-                         the 4 integer offsets [0, 8, 16, 24] entered for
-                         MA, MB, MC, and MD channels respectively.
-                         Exits if valid input cannot be obtained (e.g., user interruption).
+        list[list[int]]: A list containing 4 lists of offsets
     """
-    expected_offsets = {0, 8, 16, 24} # Use a set for easy comparison, order doesn't matter
-    channel_names = ["MA", "MB", "MC", "MD"] # Define the channel names
-    all_offset_groups = [] # Initialize the list to store the offset groups for each channel
+    expected_offsets = {0, 8, 16, 24}
+    default_offsets = [0, 8, 16, 24]
+    channel_names = ["MA", "MB", "MC", "MD"]
+    all_offset_groups = []
 
-    print("Please enter the offset values (0 8 16 24) for each channel:")
+    print("Please enter the offset values (0 8 16 24) for each channel,")
+    print("or enter 'd' to use default values (0 8 16 24) for ALL channels:")
 
-    for channel in channel_names: # Loop through each channel name
-        current_channel_offsets = None # Initialize the variable for the current channel's offsets
+    # First check if user wants to use default values for all channels
+    print("Use defaults for all channels? (d/n): ", end="")
+    sys.stdout.flush()
+    try:
+        use_defaults = input().strip().lower()
+        if use_defaults == 'd':
+            # Apply default values to all channels
+            for channel in channel_names:
+                all_offset_groups.append(default_offsets.copy())
+                print(f"Using default offsets for {channel}: {default_offsets}")
+            return all_offset_groups
+    except (EOFError, KeyboardInterrupt):
+        print("\nOperation interrupted. Exiting.")
+        sys.exit(1)
 
-        while current_channel_offsets is None: # Keep asking until valid offsets are received
-            # Print the channel name prompt without a newline
+    # If not using defaults, proceed with individual channel input
+    for channel in channel_names:
+        current_channel_offsets = None
+
+        while current_channel_offsets is None:
             print(f"{channel}: ", end="")
-            # Flush the output buffer to ensure the prompt appears before input is read
             sys.stdout.flush()
             try:
-                # Read user input from the same line
-                user_input = input().strip() # Read input without an inline prompt
+                user_input = input().strip().lower()
 
-                # If the user just pressed Enter or entered only spaces, prompt again
                 if not user_input:
-                    # Re-print the prompt for clarity if input was empty
                     print(f"Error: No input provided for {channel}. Please try again.")
                     continue
 
-                # Split the input string by spaces and try to convert each part to an integer
                 input_parts = user_input.split()
                 entered_offsets = [int(part) for part in input_parts]
 
-                # --- Validation Stage ---
-
-                # 1. Check if exactly 4 items were entered
                 if len(entered_offsets) != 4:
-                    print(f"Error: Exactly 4 offsets are required for channel {channel}. You entered {len(entered_offsets)}. Please try again.")
-                    continue # Go back to the start of the loop to re-prompt for this channel
+                    print(f"Error: Exactly 4 offsets required. You entered {len(entered_offsets)}.")
+                    continue
 
-                # 2. Check if the entered values are exactly {0, 8, 16, 24} (using set comparison)
                 entered_set = set(entered_offsets)
                 if entered_set != expected_offsets:
                     print(f"Error: Channel {channel} offsets must be exactly 0, 8, 16, 24.")
                     print(f"      You entered: {entered_offsets}")
-                    print(f"      Expected: {sorted(list(expected_offsets))}") # Show expected values sorted for clarity
-                    continue # Go back to the start of the loop to re-prompt for this channel
+                    print(f"      Expected: {sorted(list(expected_offsets))}")
+                    continue
 
-                # --- Validation Passed ---
-                current_channel_offsets = entered_offsets # Assign the validated list
-                # print(f"✅ {channel} offsets accepted: {current_channel_offsets}") # Optional confirmation
+                current_channel_offsets = entered_offsets
 
             except ValueError:
-                # Handles the case where int(part) fails (user entered non-numeric input)
-                print(f"Error: Offsets for {channel} must be valid integers. Please check your input.")
-                # Continue the loop to re-prompt for this channel
-            except EOFError:
-                # Handles Ctrl+D (Linux/macOS) or Ctrl+Z+Enter (Windows) during input()
-                print("\nError: End of input detected. Cannot get offsets. Exiting.")
-                sys.exit(1) # Terminate the script
-            except KeyboardInterrupt:
-                # Handles Ctrl+C during input()
-                print("\nOperation interrupted by user. Exiting.")
-                sys.exit(1) # Terminate the script
+                print(f"Error: Offsets must be valid integers. Please check your input.")
+                continue
+            except (EOFError, KeyboardInterrupt):
+                print("\nOperation interrupted. Exiting.")
+                sys.exit(1)
 
-        # Once a valid set of offsets is entered for the channel, add it to the list
         all_offset_groups.append(current_channel_offsets)
 
-    return all_offset_groups # Return the validated list containing 4 lists of offsets
+    return all_offset_groups
 
 if __name__ == "__main__":
     # --- Configuration ---
