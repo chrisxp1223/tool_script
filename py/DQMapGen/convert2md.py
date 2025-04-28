@@ -13,26 +13,22 @@ data_blocks_info = [
 ]
 
 column_indices = [0, 1, 3, 5, 7]
-
 output_columns = ["DRAM DQ Lane", "Channel A", "Channel B", "Channel C", "Channel D"]
-
 final_markdown = ""
 
 if not os.path.exists(xlsx_path):
-    print(f"❌ 錯誤：輸入檔案 '{xlsx_path}' 不存在。請確認檔案路徑是否正確。")
+    print(f"Error: Input file '{xlsx_path}' does not exist. Please check the file path.")
     exit()
 
 try:
     df = pd.read_excel(xlsx_path, header=None, engine='openpyxl')
-
-    print(f"ℹ️  成功讀取檔案: '{xlsx_path}'")
+    print(f"Info: Successfully read file: '{xlsx_path}'")
 
     for start_row, end_row, title in data_blocks_info:
-        print(f"⚙️  正在處理區塊: '{title}' (Excel 列 {start_row + 1} 到 {end_row})")
+        print(f"Processing: '{title}' (Excel rows {start_row + 1} to {end_row})")
 
         try:
             block_slice = df.iloc[start_row:end_row, column_indices]
-
             block_df = pd.DataFrame(block_slice.values, columns=output_columns).copy()
 
             for col in ["Channel A", "Channel B", "Channel C", "Channel D"]:
@@ -51,26 +47,25 @@ try:
             final_markdown += "\n\n"
 
         except IndexError:
-            print(f"⚠️ 警告：處理區塊 '{title}' 時發生索引錯誤。")
-            print(f"   請檢查定義的範圍 (列 {start_row}-{end_row-1}, 欄 {column_indices}) 是否在檔案 '{xlsx_path}' 的有效範圍內。")
-            print(f"   將跳過此區塊。")
+            print(f"Warning: Index error while processing block '{title}'.")
+            print(f"   Please check if range (rows {start_row}-{end_row-1}, columns {column_indices}) is valid in '{xlsx_path}'.")
+            print(f"   Skipping this block.")
         except Exception as e:
-            print(f"⚠️ 警告：處理區塊 '{title}' 時發生未預期的錯誤: {e}。將跳過此區塊。")
-
+            print(f"Warning: Unexpected error while processing block '{title}': {e}. Skipping this block.")
 
     if final_markdown:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(final_markdown)
-        print(f"✅ 成功輸出 Markdown 檔案到：'{output_path}'")
+        print(f"Success: Exported Markdown file to: '{output_path}'")
     else:
-        print("❌ 錯誤：沒有產生任何 Markdown 內容。請檢查輸入檔案的格式和腳本中的範圍定義。")
+        print("Error: No Markdown content generated. Please check the input file format and script range definitions.")
 
 except FileNotFoundError:
-     print(f"❌ 錯誤：輸入檔案 '{xlsx_path}' 未找到或無法讀取。")
+    print(f"Error: Input file '{xlsx_path}' not found or cannot be read.")
 except ImportError as e:
-     print(f"❌ 錯誤：缺少必要的 Python 函式庫 ({e})。")
-     print(f"   請確認已安裝 pandas, openpyxl, 和 tabulate。")
-     print(f"   可以執行: pip install pandas openpyxl tabulate")
+    print(f"Error: Required Python library missing ({e}).")
+    print(f"   Please ensure pandas, openpyxl, and tabulate are installed.")
+    print(f"   Run: pip install pandas openpyxl tabulate")
 except Exception as e:
-    print(f"❌ 處理過程中發生未預期的錯誤：{e}")
+    print(f"Error: Unexpected error occurred: {e}")
 
