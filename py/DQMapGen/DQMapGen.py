@@ -64,7 +64,7 @@ def parse_dqmap_content(content):
                       or None if parsing fails.
     """
     print("Parsing dqmap.md content...")
-    
+
     try:
         # Initialize the mapping structure for each channel and side
         mapping = {
@@ -77,14 +77,14 @@ def parse_dqmap_content(content):
             'MDA': {'lower': [None]*8, 'upper': [None]*8},
             'MDB': {'lower': [None]*8, 'upper': [None]*8}
         }
-        
+
         # Flag to track the current section we're parsing
         current_section = None
         is_b_side = False
-        
+
         # Split the content into lines for processing
         lines = content.strip().split('\n')
-        
+
         # Process each line
         for line in lines:
             line = line.strip()
@@ -99,7 +99,7 @@ def parse_dqmap_content(content):
                     current_section = 'lower'
                 elif '[15:8]' in line:
                     current_section = 'upper'
-                
+
                 # Check if this is B side by looking at the channel names in parentheses
                 if 'MAB/MBB/MCB/MDB' in line:
                     is_b_side = True
@@ -107,7 +107,7 @@ def parse_dqmap_content(content):
                     is_b_side = False
                 print(f"Section: {current_section}, B side: {is_b_side}")
                 continue
-            
+
             # Skip header rows and empty lines
             if line.startswith('|') and "DRAM DQ Lane" not in line and "---" not in line:
                 # Parse the table row
@@ -116,16 +116,16 @@ def parse_dqmap_content(content):
                     try:
                         # Extract DQ lane number
                         dq_lane = int(parts[0].replace("DQ", ""))
-                        
+
                         # Extract pin numbers for each channel
                         channel_a_pin = int(parts[1])
                         channel_b_pin = int(parts[2])
                         channel_c_pin = int(parts[3])
                         channel_d_pin = int(parts[4])
-                        
+
                         # Calculate correct index for upper section
                         idx = dq_lane if current_section == 'lower' else dq_lane - 8
-                        
+
                         # Store in the appropriate section and side
                         if not is_b_side:  # A side
                             mapping['MAA'][current_section][idx] = channel_a_pin
@@ -141,7 +141,7 @@ def parse_dqmap_content(content):
                         print(f"Warning: Could not parse line: {line}")
                         print(f"Error details: {str(e)}")
                         continue
-        
+
         # Extract data groups in the specified order
         data_groups = [
             mapping['MAA']['lower'],  # Group 1: MAA lower (DQ0-DQ7)
@@ -161,7 +161,7 @@ def parse_dqmap_content(content):
             mapping['MDB']['lower'],  # Group 15: MDB lower (DQ0-DQ7)
             mapping['MDB']['upper']   # Group 16: MDB upper (DQ8-DQ15)
         ]
-        
+
         # Print all groups for user validation
         print("\n--- Parsed DQ Groups ---")
         for i, (channel, section) in enumerate(zip(
@@ -173,16 +173,16 @@ def parse_dqmap_content(content):
             group_num = i + 1
             print(f"Group {group_num}: {channel}-{section} (DQ{'0-7' if section=='lower' else '8-15'}): {data_groups[i]}")
         print("--- End of Parsed DQ Groups ---\n")
-        
+
         # Validate the data
         for i, group in enumerate(data_groups):
             if None in group:
                 print(f"Warning: Group {i+1} contains None values: {group}")
                 # Replace None with 0 for simplicity
                 data_groups[i] = [0 if x is None else x for x in group]
-        
+
         return data_groups
-        
+
     except Exception as e:
         print(f"Error parsing dqmap.md content: {str(e)}")
         import traceback
@@ -192,21 +192,21 @@ def parse_dqmap_content(content):
 def generate_mem_data_groups(offsets, data_groups):
     """
     Generate memory data groups based on offsets and data groups.
-    
+
     Args:
         offsets: List of offsets for each channel [MA0,MA8,MA16,MA24, MB0,MB8,MB16,MB24, ...]
         data_groups: List of DQ pin mappings for each channel
-    
+
     Returns:
         List of processed groups with MEM_MX_DATA_XX format
     """
     result = []
-    
+
     # Process each channel (MA, MB, MC, MD)
     for channel_idx in range(4):  # 4 channels: MA, MB, MC, MD
         # Get the base offsets for this channel (4 offsets per channel)
         channel_offsets = offsets[channel_idx * 4:(channel_idx + 1) * 4]
-        
+
         # Process A-side lower byte group
         a_lower_group = []
         a_data = data_groups[channel_idx * 4]  # Get A-side lower byte data
@@ -219,7 +219,7 @@ def generate_mem_data_groups(offsets, data_groups):
             value += offset
             a_lower_group.append(f"MEM_MX_DATA_{value:02d}")
         result.append(a_lower_group)
-        
+
         # Process A-side upper byte group
         a_upper_group = []
         a_data = data_groups[channel_idx * 4 + 1]  # Get A-side upper byte data
@@ -232,7 +232,7 @@ def generate_mem_data_groups(offsets, data_groups):
             value += offset
             a_upper_group.append(f"MEM_MX_DATA_{value:02d}")
         result.append(a_upper_group)
-        
+
         # Process B-side lower byte group
         b_lower_group = []
         for dq_idx in range(8):
@@ -241,7 +241,7 @@ def generate_mem_data_groups(offsets, data_groups):
             value = dq_idx + offset
             b_lower_group.append(f"MEM_MX_DATA_{value:02d}")
         result.append(b_lower_group)
-        
+
         # Process B-side upper byte group
         b_upper_group = []
         for dq_idx in range(8):
@@ -250,14 +250,14 @@ def generate_mem_data_groups(offsets, data_groups):
             value = dq_idx + offset
             b_upper_group.append(f"MEM_MX_DATA_{value:02d}")
         result.append(b_upper_group)
-    
+
     return result
 
 def get_offsets_interactively():
     """
     Interactively prompts the user to enter 4 offsets (0, 8, 16, 24) for each
     channel (MA, MB, MC, MD). Enter 'd' once to apply default values to all channels.
-    
+
     Returns:
         list[list[int]]: A list containing 4 lists of offsets
     """
@@ -326,15 +326,16 @@ def get_offsets_interactively():
     return all_offset_groups
 
 if __name__ == "__main__":
-    # --- Configuration ---
+
+    # TODO: Add argument parsing for dqmap_filename
     dqmap_filename = "dqmap_rmb.md" # Define the filename variable here
 
-    # Initialize variables
     data_groups = None
-    interactive_offsets = None # Initialize interactive_offsets
-    parameters_obtained = False # Flag to track if we got the necessary parameters
+    interactive_offsets = None
+    parameters_obtained = False
 
     # --- Step 1: Get interactive offsets --- REQUIRE this to succeed
+    # TODO: use logging instead of print statements
     print("Attempting to get offsets interactively...")
     interactive_offsets = get_offsets_interactively()
 
@@ -388,3 +389,6 @@ if __name__ == "__main__":
         # This block is reached if interactive offsets failed, file wasn't found, OR parsing failed.
         print(f"\nCould not obtain necessary parameters (interactive offsets and/or data groups from {dqmap_filename}). Program terminated.")
         sys.exit(1) # Exit with an error status
+
+    # TODO: determine the header file format by APU etc. RMB/HPT/STX
+    # TODO: out put the generated groups to a a header file.
