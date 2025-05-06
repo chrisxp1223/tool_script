@@ -16,6 +16,24 @@ import os
 import sys # Import the sys module for exiting on error
 import itertools # Import itertools for flattening lists
 
+# Dictionary for mapping platform identifiers to their configurations
+PLATFORM_CONFIGS = {
+    'rmb': {
+        'name': 'Rembrandt',
+        'header_format': 'RMB_FORMAT',
+        'data_pattern': 'MEM_MX_DATA'
+    },
+    'hpt': {
+        'name': 'Hawkpoint',
+        'header_format': 'HPT_FORMAT',
+        'data_pattern': 'MEM_HPT_DATA'
+    },
+    'stx': {
+        'name': 'Strix',
+        'header_format': 'STX_FORMAT',
+        'data_pattern': 'MEM_STX_DATA'
+    }
+}
 
 def read_dqmap_file(file_path):
     """
@@ -325,6 +343,39 @@ def get_offsets_interactively():
 
     return all_offset_groups
 
+def get_file_name(platform_name):
+    """
+    Retrieves the name of the markdown file for the given platform
+    from the 'input' directory located in the same directory as the script.
+
+    Args:
+        platform_name (str): The name of the platform (e.g., 'rmb', 'hpt', 'stx').
+
+    Returns:
+        str or None: The name of the markdown file if found, otherwise None.
+    """
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        input_dir = os.path.join(script_dir, 'input')
+
+        if not os.path.exists(input_dir):
+            print(f"Error: Input directory not found at {input_dir}")
+            return None
+
+        expected_filename = f"dqmap_{platform_name}.md"
+
+        file_path = os.path.join(input_dir, expected_filename)
+
+        if not os.path.exists(file_path):
+            print(f"Error: File not found: {file_path}")
+            return None
+
+        return expected_filename
+
+    except Exception as e:
+        print(f"Error retrieving markdown file name: {str(e)}")
+        return None
+
 if __name__ == "__main__":
 
     # TODO: Add argument parsing for dqmap_filename
@@ -333,6 +384,8 @@ if __name__ == "__main__":
     data_groups = None
     interactive_offsets = None
     parameters_obtained = False
+
+    get_file_name("rmb")
 
     # --- Step 1: Get interactive offsets --- REQUIRE this to succeed
     # TODO: use logging instead of print statements
