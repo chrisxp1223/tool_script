@@ -15,6 +15,7 @@
 import os
 import sys # Import the sys module for exiting on error
 import itertools # Import itertools for flattening lists
+import argparse  # Add this at the top with other imports
 
 # Dictionary for mapping platform identifiers to their configurations
 PLATFORM_CONFIGS = {
@@ -345,14 +346,14 @@ def get_offsets_interactively():
 
 def get_file_name(platform_name):
     """
-    Retrieves the name of the markdown file for the given platform
+    Retrieves the full path of the markdown file for the given platform
     from the 'input' directory located in the same directory as the script.
 
     Args:
         platform_name (str): The name of the platform (e.g., 'rmb', 'hpt', 'stx').
 
     Returns:
-        str or None: The name of the markdown file if found, otherwise None.
+        str or None: The full path of the markdown file if found, otherwise None.
     """
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -363,29 +364,50 @@ def get_file_name(platform_name):
             return None
 
         expected_filename = f"dqmap_{platform_name}.md"
-
         file_path = os.path.join(input_dir, expected_filename)
 
         if not os.path.exists(file_path):
             print(f"Error: File not found: {file_path}")
             return None
 
-        return expected_filename
+        print(f"Found dqmap file: {file_path}")
+        global dqmap_filename
+        dqmap_filename = file_path
+        return file_path
 
     except Exception as e:
-        print(f"Error retrieving markdown file name: {str(e)}")
+        print(f"Error retrieving markdown file path: {str(e)}")
         return None
+
+def parse_command_line_args():
+        """
+        Parse command line arguments to determine which platform configuration to use.
+
+        Returns:
+            str: The selected platform identifier ('rmb', 'hpt', or 'stx')
+        """
+        parser = argparse.ArgumentParser(description='DQ Map Generator Tool')
+        platform_group = parser.add_mutually_exclusive_group(required=True)
+        platform_group.add_argument('--rmb', action='store_const', const='rmb', dest='platform',
+                                  help='Use Rembrandt platform configuration')
+        platform_group.add_argument('--hpt', action='store_const', const='hpt', dest='platform',
+                                  help='Use Hawkpoint platform configuration')
+        platform_group.add_argument('--stx', action='store_const', const='stx', dest='platform',
+                                  help='Use Strix platform configuration')
+
+        args = parser.parse_args()
+        return args.platform
 
 if __name__ == "__main__":
 
-    # TODO: Add argument parsing for dqmap_filename
-    dqmap_filename = "dqmap_rmb.md" # Define the filename variable here
+    # Parse command line arguments to get the platform
 
     data_groups = None
     interactive_offsets = None
     parameters_obtained = False
 
-    get_file_name("rmb")
+    platform = parse_command_line_args()
+    get_file_name(platform)
 
     # --- Step 1: Get interactive offsets --- REQUIRE this to succeed
     # TODO: use logging instead of print statements
