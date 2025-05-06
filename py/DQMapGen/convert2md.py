@@ -3,7 +3,7 @@ from tabulate import tabulate
 import os
 
 xlsx_path = "dqmap_rmb.xlsx"
-output_path = "dqmap_rmb.md"
+output_path = "input/dqmap_rmb.md"
 
 data_blocks_info = [
     (4, 12, "[7:0] Lower Byte Group (MAA/MBA/MCA/MDA)"),
@@ -11,7 +11,6 @@ data_blocks_info = [
     (22, 30, "[7:0] Lower Byte Group (MAB/MBB/MCB/MDB)"),
     (31, 39, "[15:8] Upper Byte Group (MAB/MBB/MCB/MDB)")
 ]
-
 column_indices = [0, 1, 3, 5, 7]
 output_columns = ["DRAM DQ Lane", "Channel A", "Channel B", "Channel C", "Channel D"]
 final_markdown = ""
@@ -54,6 +53,7 @@ try:
             print(f"Warning: Unexpected error while processing block '{title}': {e}. Skipping this block.")
 
     if final_markdown:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(final_markdown)
         print(f"Success: Exported Markdown file to: '{output_path}'")
