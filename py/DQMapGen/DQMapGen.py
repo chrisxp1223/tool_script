@@ -12,10 +12,51 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
+import logging
 import os
-import sys # Import the sys module for exiting on error
-import itertools # Import itertools for flattening lists
-import argparse  # Add this at the top with other imports
+import sys
+import itertools
+import argparse
+
+# Set up logging configuration
+def setup_logging():
+    """Configure logging with custom format and level.
+
+    Sets up logging configuration with a specific format that includes timestamp,
+    log level, and message. The logger is configured to write to a log file only,
+    without outputting to the console.
+
+    The log file is named 'dqmap_generator.log' and will be created in the
+    current working directory.
+
+    Usage:
+        logger = setup_logging()
+        logger.info("Application started")
+        logger.error("An error occurred: %s", error_message)
+        logger.debug("Debug information")
+
+    Returns:
+        logging.Logger: Configured logger instance for the current module.
+    """
+    log_format = '%(asctime)s - %(levelname)s - %(message)s'
+
+    # Create a logger
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    # Clear any existing handlers
+    if logger.handlers:
+        logger.handlers.clear()
+
+    # Add only file handler (no console output)
+    file_handler = logging.FileHandler('dqmap_generator.log')
+    file_handler.setFormatter(logging.Formatter(log_format))
+    logger.addHandler(file_handler)
+
+    return logger
+
+# Create logger instance
+logger = setup_logging()
 
 # Dictionary for mapping platform identifiers to their configurations
 PLATFORM_CONFIGS = {
@@ -300,7 +341,7 @@ def get_offsets_interactively():
                 print(f"Using default offsets for {channel}: {default_offsets}")
             return all_offset_groups
     except (EOFError, KeyboardInterrupt):
-        print("\nOperation interrupted. Exiting.")
+        logger.error("\nOperation interrupted. Exiting.")
         sys.exit(1)
 
     # If not using defaults, proceed with individual channel input
@@ -337,7 +378,7 @@ def get_offsets_interactively():
                 print(f"Error: Offsets must be valid integers. Please check your input.")
                 continue
             except (EOFError, KeyboardInterrupt):
-                print("\nOperation interrupted. Exiting.")
+                logger.critical("\nOperation interrupted. Exiting.")
                 sys.exit(1)
 
         all_offset_groups.append(current_channel_offsets)
@@ -360,14 +401,14 @@ def get_file_name(platform_name):
         input_dir = os.path.join(script_dir, 'input')
 
         if not os.path.exists(input_dir):
-            print(f"Error: Input directory not found at {input_dir}")
+            logger.error(f"Input directory not found at {input_dir}")
             return None
 
         expected_filename = f"dqmap_{platform_name}.md"
         file_path = os.path.join(input_dir, expected_filename)
 
         if not os.path.exists(file_path):
-            print(f"Error: File not found: {file_path}")
+            logger.error(f"File not found: {file_path}")
             return None
 
         print(f"Found dqmap file: {file_path}")
@@ -376,7 +417,7 @@ def get_file_name(platform_name):
         return file_path
 
     except Exception as e:
-        print(f"Error retrieving markdown file path: {str(e)}")
+        logger.error(f"Error retrieving markdown file path: {str(e)}")
         return None
 
 def parse_command_line_args():
@@ -409,22 +450,20 @@ if __name__ == "__main__":
     platform = parse_command_line_args()
     get_file_name(platform)
 
-    # --- Step 1: Get interactive offsets --- REQUIRE this to succeed
+    # --- Step 1: Get interactive offsets
     # TODO: use logging instead of print statements
     print("Attempting to get offsets interactively...")
     interactive_offsets = get_offsets_interactively()
 
     if not interactive_offsets:
         # Function should exit on failure, but handle defensively
-        print("Error: Failed to obtain valid offsets interactively. Program cannot continue.")
+        logger.critical("Failed to obtain valid offsets interactively. Program cannot continue.")
         sys.exit(1)
     else:
-        print("\nSuccessfully obtained user offsets interactively:")
-        print(interactive_offsets)
+        logger.info("Successfully obtained user offsets interactively: %s", interactive_offsets)
         # Flatten the interactive_offsets into a single list
         flattened_offsets = list(itertools.chain.from_iterable(interactive_offsets))
-        print("\nFlattened offsets:")
-        print(flattened_offsets)
+        logger.info("Flattened offsets: %s", flattened_offsets)
 
     # --- Step 2: Try reading and parsing the file for data_groups --- REQUIRE this to succeed too
     print(f"\nAttempting to read and parse {dqmap_filename} for data groups...")
@@ -437,17 +476,17 @@ if __name__ == "__main__":
 
         # Check if parsing was successful (got data_groups)
         if parsed_data_groups is not None:
-            print(f"Successfully parsed data groups from {dqmap_filename}.")
+            logger.info(f"Successfully parsed data groups from {dqmap_filename}.")
             data_groups = parsed_data_groups # Assign the successfully parsed groups
             parameters_obtained = True # We have both interactive_offsets and data_groups
         else:
             # Parsing failed
-            print(f"Error: Could not parse necessary data_groups from {dqmap_filename}.")
+            logger.error(f"Could not parse necessary data_groups from {dqmap_filename}.")
             parameters_obtained = False
     else:
         # File reading failed
-        print(f"Error reading file: {file_content_or_error}")
-        print(f"Cannot proceed without {dqmap_filename} file.")
+        logger.error(f"Error reading file: {file_content_or_error}")
+        logger.error(f"Cannot proceed without {dqmap_filename} file.")
         parameters_obtained = False
 
     # --- Step 3: Proceed only if BOTH interactive offsets AND data groups were obtained ---
@@ -462,7 +501,7 @@ if __name__ == "__main__":
             print("Generation of MEM data groups failed.")
     else:
         # This block is reached if interactive offsets failed, file wasn't found, OR parsing failed.
-        print(f"\nCould not obtain necessary parameters (interactive offsets and/or data groups from {dqmap_filename}). Program terminated.")
+        logger.error(f"\nCould not obtain necessary parameters (interactive offsets and/or data groups from {dqmap_filename}). Program terminated.")
         sys.exit(1) # Exit with an error status
 
     # TODO: determine the header file format by APU etc. RMB/HPT/STX
