@@ -14,7 +14,6 @@ This tool is ideal for BIOS/UEFI engineers who need to streamline and validate p
 - 🛠 Built with Python 3 using `pandas` and `openpyxl`
 - 📈 Reduces manual errors and boosts efficiency
 
-
 ---
 
 ## 📥 Input & 📤 Output Rules
@@ -24,13 +23,13 @@ This tool is ideal for BIOS/UEFI engineers who need to streamline and validate p
 The tool accepts **Excel (.xlsx)** or **CSV (.csv)** files as input, typically exported from the **BAE checklist**. To ensure proper parsing and generation, please follow these rules:
 
 - File naming convention:
-  - Use `dqmap_<platform>.xlsx` or `dqmap_<platform>.csv`  
+  - Use `dqmap_<platform>.xlsx` or `dqmap_<platform>.csv`
   - Examples:
     - `dqmap_mdn.xlsx` → Mendocino
-    - `dqmap_rmb.xlsx` → Rembrandt 
-    - `dqmap_phx.xlsx` → Phoenix 
+    - `dqmap_rmb.xlsx` → Rembrandt
+    - `dqmap_phx.xlsx` → Phoenix
     - `dqmap_stx.xlsx` → Strix Point
-    - `dqmap_krk.csv`  → Kraken
+    - `dqmap_krk.xlsx` → Krackan
 
 ---
 
@@ -58,7 +57,6 @@ The output is a **C-style Header File (.h)** with `#define` macros that map each
 
 #### Input (`dqmap_mdn.xlsx`):
 
-
 #### Output (`dqmap_mdn.h`):
 
 ```c
@@ -67,5 +65,3 @@ The output is a **C-style Header File (.h)** with `#define` macros that map each
 ```
 
 ---
-
-// ... More mappings
