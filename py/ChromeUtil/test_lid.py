@@ -7,7 +7,7 @@ def lid_off():
     subprocess.call(["dut-control", "lid_open:no",])
     print "lid off....."
 
-def lid_open(): 
+def lid_open():
     subprocess.call(["dut-control", "lid_open:yes",])
     print "lid open...."
 
@@ -26,18 +26,18 @@ def check_ping():
 def main():
     test_count = 1000
     while (test_count > 0):
-        
+
         lid_off()
-        
+
         subprocess.call(["sleep", "15",])
-        
+
         lid_open()
-        
+
         subprocess.call(["sleep", "20",])
-        
+
         if ("Network Error" == check_ping()):
             break
-        
+
         test_count -= 1
         print "test count %d"%(test_count)
 
