@@ -88,25 +88,20 @@ def read_dqmap_file(file_path):
         tuple: (bool, str) - (success status, file contents or error message)
     """
     try:
-        # Use the provided file_path argument
-        # Check if file exists
         if not os.path.exists(file_path):
             return False, f"Error: File not found at {file_path}"
 
-        # Read file contents
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
 
         if not content:
             return False, f"Error: File is empty at {file_path}"
 
-        # --- Print the content if successfully read ---
-        print(f"\n--- Content of {os.path.basename(file_path)} ---") # Use basename for cleaner print
+        print(f"\n--- Content of {os.path.basename(file_path)} ---")
         print(content)
         print(f"--- End of {os.path.basename(file_path)} Content ---\n")
         # ---------------------------------------------
 
-        # Return True and the content
         return True, content
 
     except Exception as e:
@@ -263,16 +258,14 @@ def generate_mem_data_groups(offsets, data_groups):
     result = []
 
     # Process each channel (MA, MB, MC, MD)
-    for channel_idx in range(4):  # 4 channels: MA, MB, MC, MD
-        # Get the base offsets for this channel (4 offsets per channel)
+    for channel_idx in range(4):
         channel_offsets = offsets[channel_idx * 4:(channel_idx + 1) * 4]
 
         # Process A-side lower byte group
         a_lower_group = []
-        a_data = data_groups[channel_idx * 4]  # Get A-side lower byte data
+        a_data = data_groups[channel_idx * 4]
         for dq_idx, pin in enumerate(a_data):
-            # Determine which offset to use (0-7 maps to first offset)
-            offset = channel_offsets[0]  # Use first offset for lower byte
+            offset = channel_offsets[0]
             value = pin
             if value >= 8:
                 value -= 8
@@ -282,10 +275,9 @@ def generate_mem_data_groups(offsets, data_groups):
 
         # Process A-side upper byte group
         a_upper_group = []
-        a_data = data_groups[channel_idx * 4 + 1]  # Get A-side upper byte data
+        a_data = data_groups[channel_idx * 4 + 1]
         for dq_idx, pin in enumerate(a_data):
-            # Determine which offset to use (8-15 maps to second offset)
-            offset = channel_offsets[1]  # Use second offset for upper byte
+            offset = channel_offsets[1]
             value = pin
             if value >= 8:
                 value -= 8
@@ -296,7 +288,6 @@ def generate_mem_data_groups(offsets, data_groups):
         # Process B-side lower byte group
         b_lower_group = []
         for dq_idx in range(8):
-            # Use third offset for B-side lower byte
             offset = channel_offsets[2]
             value = dq_idx + offset
             b_lower_group.append(f"MEM_MX_DATA_{value:02d}")
@@ -305,7 +296,6 @@ def generate_mem_data_groups(offsets, data_groups):
         # Process B-side upper byte group
         b_upper_group = []
         for dq_idx in range(8):
-            # Use fourth offset for B-side upper byte
             offset = channel_offsets[3]
             value = dq_idx + offset
             b_upper_group.append(f"MEM_MX_DATA_{value:02d}")
@@ -410,7 +400,7 @@ def get_file_name(platform_name):
         if not os.path.exists(file_path):
             logger.error(f"File not found: {file_path}")
             return None
-
+        # TODO: use a better way to determine the file name and not use global variables here
         print(f"Found dqmap file: {file_path}")
         global dqmap_filename
         dqmap_filename = file_path
@@ -427,6 +417,10 @@ def parse_command_line_args():
         Returns:
             str: The selected platform identifier ('rmb', 'hpt', or 'stx')
         """
+        # TODO: Modulize the architecture to easily support older and newer platforms
+        # TODO: Implement a plugin system for platform-specific code and configurations
+        # TODO: Create a configuration file format for defining new platforms without code changes
+
         parser = argparse.ArgumentParser(description='DQ Map Generator Tool')
         platform_group = parser.add_mutually_exclusive_group(required=True)
         platform_group.add_argument('--rmb', action='store_const', const='rmb', dest='platform',
@@ -456,12 +450,10 @@ if __name__ == "__main__":
     interactive_offsets = get_offsets_interactively()
 
     if not interactive_offsets:
-        # Function should exit on failure, but handle defensively
         logger.critical("Failed to obtain valid offsets interactively. Program cannot continue.")
         sys.exit(1)
     else:
         logger.info("Successfully obtained user offsets interactively: %s", interactive_offsets)
-        # Flatten the interactive_offsets into a single list
         flattened_offsets = list(itertools.chain.from_iterable(interactive_offsets))
         logger.info("Flattened offsets: %s", flattened_offsets)
 
@@ -471,20 +463,16 @@ if __name__ == "__main__":
 
     if success:
         print(f"{dqmap_filename} file content loaded successfully.")
-        # Attempt to parse the content - Now only returns data_groups or None
         parsed_data_groups = parse_dqmap_content(file_content_or_error)
 
-        # Check if parsing was successful (got data_groups)
         if parsed_data_groups is not None:
             logger.info(f"Successfully parsed data groups from {dqmap_filename}.")
-            data_groups = parsed_data_groups # Assign the successfully parsed groups
-            parameters_obtained = True # We have both interactive_offsets and data_groups
+            data_groups = parsed_data_groups
+            parameters_obtained = True
         else:
-            # Parsing failed
             logger.error(f"Could not parse necessary data_groups from {dqmap_filename}.")
             parameters_obtained = False
     else:
-        # File reading failed
         logger.error(f"Error reading file: {file_content_or_error}")
         logger.error(f"Cannot proceed without {dqmap_filename} file.")
         parameters_obtained = False
@@ -494,26 +482,21 @@ if __name__ == "__main__":
         # TODO: out put the generated groups to a a header file.
         # TODO: determine the header file format by APU etc. RMB/HPT/STX
         logger.info(f"\nGenerating MEM data groups using interactive offsets and data groups from {dqmap_filename}...")
-        # Pass the FLATTENED offsets and the parsed data_groups
         groups = generate_mem_data_groups(flattened_offsets, data_groups)
-        if groups:  # Check if generation was successful
-            # Print the matrix to console for verification
+        if groups:
             logger.info("\n--- Generated MEM Data Groups Matrix ---")
             for i, group in enumerate(groups):
                 logger.info(f"Group {i+1}: {{ {', '.join(group)} }}")
             logger.info("--- End of Matrix ---\n")
 
-            # Generate output filename based on input filename
             input_basename = os.path.basename(dqmap_filename)
             output_name = f"dqmap_{platform}.h"
             output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
 
-            # Create output directory if it doesn't exist
             os.makedirs(output_path, exist_ok=True)
-
             output_file = os.path.join(output_path, output_name)
 
-            # Write to header file
+            # TODO: rewrite with creating a helper function to generate the output file
             with open(output_file, 'w') as f:
                 f.write(f"// Auto-generated DQ Map for {PLATFORM_CONFIGS[platform]['name']}\n")
                 f.write("// Generated by DQMapGen.py\n\n")
@@ -534,5 +517,5 @@ if __name__ == "__main__":
     else:
         # This block is reached if interactive offsets failed, file wasn't found, OR parsing failed.
         logger.error(f"Could not obtain necessary parameters (interactive offsets and/or data groups from {dqmap_filename}). Program terminated.")
-        sys.exit(1) # Exit with an error status
+        sys.exit(1)
 
