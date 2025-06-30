@@ -1,4 +1,11 @@
 @echo off
+REM ******************************************************************
+REM * Batch File: s0i3_reg_manager.bat
+REM * Description: This script configures AMD platform registry settings for development.
+REM * Author: Fork from BAE team and Vibe Coding with Gemini
+REM * Date: 2025-06-30:
+REM ******************************************************************
+@echo off
 setlocal enabledelayedexpansion
 
 echo ========================================
