@@ -68,10 +68,6 @@ node_modules/
 # OS specific
 .DS_Store
 
-# Task files
-# tasks.json
-# tasks/ 
-
 # Claude Code files
 .claude/
 CLAUDE.md
@@ -89,3 +85,7 @@ taskmaster.config.js
 .roomodes
 .trae/
 .windsurf/
+
+# Task files
+# tasks.json
+# tasks/ 
