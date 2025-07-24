@@ -1,0 +1,33 @@
+# Example batch commands file for PostCodeMon
+# Each line represents a set of arguments to pass to the tool
+# Lines starting with # are comments and will be ignored
+
+# Simple space-separated arguments
+--input file1.txt --output result1.txt
+--input file2.txt --output result2.txt --verbose
+--input file3.txt --output result3.txt --debug
+
+# Arguments with quotes for paths containing spaces
+--input "C:/My Documents/input file.txt" --output "C:/Results/output file.txt"
+
+# JSON array format (for complex argument structures)
+["--config", "config.json", "--mode", "batch", "--threads", "4"]
+["--input", "data/dataset1.csv", "--output", "results/analysis1.json", "--format", "json"]
+["--input", "data/dataset2.csv", "--output", "results/analysis2.json", "--format", "xml"]
+
+# Mixed argument types
+--port COM1 --baudrate 115200 --timeout 30
+--port COM2 --baudrate 9600 --timeout 60
+--port COM3 --baudrate 57600 --timeout 45
+
+# Hardware testing commands
+--test memory --iterations 100 --verbose
+--test cpu --duration 300 --cores all
+--test storage --path "C:/TestData" --size 1GB
+
+# Post code monitoring examples
+--monitor --port COM1 --duration 60 --format json
+--monitor --port COM2 --duration 30 --format csv --output monitor_results.csv
+
+# Complex command with multiple flags and options
+--source-dir "C:/Source Files" --target-dir "C:/Processed" --recursive --filter "*.log" --compress --verify

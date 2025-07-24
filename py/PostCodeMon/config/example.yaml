@@ -1,0 +1,102 @@
+# PostCodeMon Example Configuration
+# This file demonstrates all available configuration options
+
+# Tool-specific configurations
+tools:
+  # Example Windows executable wrapper
+  legacy_tool:
+    executable_path: "C:/Program Files/LegacyTool/tool.exe"
+    default_args:
+      - "--verbose"
+      - "--log-level=INFO"
+    timeout_seconds: 300
+    retry_attempts: 3
+    environment_vars:
+      TOOL_HOME: "C:/Program Files/LegacyTool"
+      TOOL_CONFIG: "production"
+    validation_rules:
+      required_args:
+        args: ["--input-file"]
+      file_exists:
+        indices: [1]  # Validate that second argument is an existing file
+  
+  # Post code monitoring tool example
+  postcode_monitor:
+    executable_path: "tools/postcode.exe"
+    default_args: ["--format=json"]
+    timeout_seconds: 120
+    retry_attempts: 2
+    environment_vars:
+      PCM_LOG_LEVEL: "DEBUG"
+    validation_rules:
+      required_args:
+        args: ["--port"]
+
+  # Hardware testing tool
+  hw_test:
+    executable_path: "C:/Tools/HardwareTest/hwtest.exe"
+    default_args: ["--safe-mode"]
+    timeout_seconds: 600
+    retry_attempts: 1
+    environment_vars:
+      HW_TEST_MODE: "automated"
+
+# Logging configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_path: "logs/postcodemon.log"
+  max_file_size: 10485760  # 10MB
+  backup_count: 5
+  json_format: false  # Set to true for structured JSON logging
+  remote_endpoint: null  # URL for remote logging service (optional)
+
+# Configuration profiles for different environments
+profiles:
+  development:
+    logging:
+      level: "DEBUG"
+      json_format: true
+    global_timeout: 1200
+    max_concurrent_jobs: 5
+    
+  testing:
+    logging:
+      level: "INFO"
+      file_path: "logs/test-postcodemon.log"
+    global_timeout: 300
+    max_concurrent_jobs: 3
+    
+  production:
+    logging:
+      level: "WARNING"
+      json_format: true  
+      remote_endpoint: "https://logs.example.com/api/v1/logs"
+    global_timeout: 180
+    max_concurrent_jobs: 20
+    monitoring_enabled: true
+    metrics_endpoint: "http://prometheus:9090/metrics"
+
+# Global settings
+global_timeout: 600  # Default timeout for all tools (seconds)
+max_concurrent_jobs: 10  # Maximum parallel tool executions
+temp_directory: null  # Use system temp if null
+monitoring_enabled: false  # Enable resource monitoring
+metrics_endpoint: null  # Prometheus metrics endpoint
+
+# Example usage scenarios:
+# 1. Basic tool execution:
+#    postcodemon execute legacy_tool --input-file data.txt --output results.json
+#
+# 2. Batch processing:
+#    postcodemon batch batch_commands.txt --tool=legacy_tool --max-concurrent=5
+#
+# 3. With custom environment:
+#    postcodemon execute hw_test --env CUSTOM_VAR=value --timeout 300
+#
+# 4. Dry run preview:
+#    postcodemon execute postcode_monitor --port COM1 --dry-run
+#
+# 5. Tool information:
+#    postcodemon info --tool legacy_tool
+#    postcodemon info --list-all

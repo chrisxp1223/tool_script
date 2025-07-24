@@ -1,0 +1,39 @@
+global_timeout: 600
+logging:
+  backup_count: 5
+  file_path: postcodemon.log
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  json_format: false
+  level: INFO
+  max_file_size: 10485760
+  remote_endpoint: null
+max_concurrent_jobs: 10
+metrics_endpoint: null
+monitoring_enabled: false
+profiles:
+  development:
+    global_timeout: 1200
+    logging:
+      level: DEBUG
+  production:
+    global_timeout: 300
+    logging:
+      level: WARNING
+temp_directory: null
+tools:
+  PostCodeMon:
+    default_args:10.98.35.153 kysy kysy
+    - --verbose
+    environment_vars:
+      TOOL_HOME: /mnt/c/users/chri/
+      TOOL_LOG_LEVEL: INFO
+    executable_path: /mnt/c/users/chri/Firmware-dev/tool/monitor_postcode_KYSY4/monitor_postcode_KYSY4
+    retry_attempts: 3
+    timeout_seconds: 50
+    validation_rules:
+      file_exists:
+        indices:
+        - 1
+      required_args:
+        args:
+        - --input
