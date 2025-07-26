@@ -81,11 +81,7 @@ def execute_command(ctx: click.Context, args: Tuple[str, ...], tool: Optional[st
             else:
                 click.echo(f"Warning: Invalid environment variable format: {env_var}", err=True)
         
-        # Progress callback for streaming output
-        def progress_callback(line: str):
-            if not ctx.obj.get('quiet', False) and output_format == 'text':
-                console.print(f"[dim]{line}[/dim]")
-        
+        # No progress callback needed since output goes directly to console
         # Execute the tool
         result = wrapper.execute_tool(
             tool_name=tool,
@@ -93,9 +89,15 @@ def execute_command(ctx: click.Context, args: Tuple[str, ...], tool: Optional[st
             cwd=str(cwd) if cwd else None,
             env=env_dict if env_dict else None,
             timeout=timeout,
-            dry_run=dry_run,
-            progress_callback=progress_callback if not dry_run else None
+            dry_run=dry_run
+            # No progress_callback since output goes directly to console
         )
+        
+        # Check if process was interrupted
+        if result.return_code == -1 and "interrupted" in result.stderr.lower():
+            if not ctx.obj.get('quiet', False):
+                console.print("[yellow]Process interrupted by user[/yellow]")
+            sys.exit(130)  # Standard exit code for Ctrl+C
         
         # Format and display results
         output_data = _format_result(result, output_format)
@@ -112,6 +114,12 @@ def execute_command(ctx: click.Context, args: Tuple[str, ...], tool: Optional[st
         
         # Exit with tool's return code
         sys.exit(result.return_code)
+        
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully
+        if not ctx.obj.get('quiet', False):
+            console.print("\n[yellow]Process interrupted by user[/yellow]")
+        sys.exit(130)
         
     except Exception as e:
         handle_error(e, ctx.obj.get('quiet', False))

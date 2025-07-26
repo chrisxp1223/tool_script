@@ -54,8 +54,25 @@ class ToolWrapper:
     def _signal_handler(self, signum: int, frame) -> None:
         """Handle system signals gracefully."""
         self.logger.info(f"Received signal {signum}, shutting down gracefully")
+        
+        # Kill all active processes first
+        active_processes = self.process_manager.get_active_processes()
+        if active_processes:
+            self.logger.info(f"Terminating {len(active_processes)} active processes")
+            for process_id, process_info in active_processes.items():
+                tool_name = process_info.get('tool_name', 'unknown')
+                pid = process_info.get('pid')
+                if pid:
+                    self.process_manager.kill_process(tool_name, pid)
+        
+        # Then shutdown normally
         self.shutdown()
-        sys.exit(0)
+        
+        # Exit with appropriate code
+        if signum == signal.SIGINT:
+            sys.exit(130)  # Standard exit code for Ctrl+C
+        else:
+            sys.exit(0)
     
     def validate_tool_config(self, tool_name: str) -> ToolConfig:
         """Validate that a tool is properly configured."""
@@ -147,6 +164,9 @@ class ToolWrapper:
         # Determine timeout
         effective_timeout = timeout or tool_config.timeout_seconds or self.config.global_timeout
         
+        # Determine working directory
+        effective_cwd = cwd or tool_config.working_directory
+        
         # Prepare environment
         final_env = os.environ.copy()
         if tool_config.environment_vars:
@@ -187,16 +207,27 @@ class ToolWrapper:
                     'max_attempts': tool_config.retry_attempts
                 })
                 
+                # Print retry information to console
+                if attempt > 0:
+                    print(f"\n[?? {attempt + 1}/{tool_config.retry_attempts}] ??????: {effective_tool_name}")
+                    print(f"??: {command_preview}")
+                    print("-" * 50)
+                
                 result = self.process_manager.execute_tool(
                     tool_name=effective_tool_name,
                     executable_path=tool_config.executable_path,
                     args=final_args,
                     timeout=effective_timeout,
-                    cwd=cwd,
+                    cwd=effective_cwd,
                     env=final_env,
                     progress_callback=progress_callback,
                     **kwargs
                 )
+                
+                # Check if tool execution was successful
+                if not result.success:
+                    # Tool failed, raise exception to trigger retry
+                    result.raise_for_status()
                 
                 # Log success
                 self.log_manager.log_audit_event(
@@ -208,6 +239,10 @@ class ToolWrapper:
                         "attempt": attempt + 1
                     }
                 )
+                
+                # Print success message if retried
+                if attempt > 0:
+                    print(f"\n[??] ? {attempt + 1} ?????!")
                 
                 return result
                 
@@ -223,6 +258,12 @@ class ToolWrapper:
                         'wait_time': wait_time,
                         'error': str(e)
                     })
+                    
+                    # Print retry information to console
+                    print(f"\n[??] ? {attempt + 1} ?????")
+                    print(f"??: {e}")
+                    print(f"[??] {wait_time} ????...")
+                    
                     time.sleep(wait_time)
                 else:
                     self.logger.error(f"Tool execution failed after {tool_config.retry_attempts} attempts: {e}", extra={
@@ -230,6 +271,12 @@ class ToolWrapper:
                         'total_attempts': tool_config.retry_attempts,
                         'final_error': str(e)
                     })
+                    
+                    # Print final failure message
+                    print(f"\n[????] ?? {tool_config.retry_attempts} ????????")
+                    print(f"????: {e}")
+                    
+                    raise
         
         # If we get here, all retries failed
         raise last_exception or ToolExecutionError(

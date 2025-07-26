@@ -9,7 +9,7 @@ logging:
   remote_endpoint: null
 max_concurrent_jobs: 10
 metrics_endpoint: null
-monitoring_enabled: false
+monitoring_enabled: true
 profiles:
   development:
     global_timeout: 1200
@@ -22,18 +22,15 @@ profiles:
 temp_directory: null
 tools:
   PostCodeMon:
-    default_args:10.98.35.153 kysy kysy
-    - --verbose
+    default_args:
+    - "10.98.35.153"  
+    - "kysy"
+    - "kysy"
     environment_vars:
-      TOOL_HOME: /mnt/c/users/chri/
+      TOOL_HOME: C:\Users\chri\Firmware-Dev\tool\PostCodeMon\monitor_postcode_KYSY4
       TOOL_LOG_LEVEL: INFO
-    executable_path: /mnt/c/users/chri/Firmware-dev/tool/monitor_postcode_KYSY4/monitor_postcode_KYSY4
-    retry_attempts: 3
-    timeout_seconds: 50
-    validation_rules:
-      file_exists:
-        indices:
-        - 1
-      required_args:
-        args:
-        - --input
+    executable_path: C:\Users\chri\Firmware-Dev\tool\PostCodeMon\monitor_postcode_KYSY4\monitor_postcode_KYSY4.exe
+    working_directory: C:\Users\chri\Firmware-Dev\tool\PostCodeMon\monitor_postcode_KYSY4
+    retry_attempts: 10
+    timeout_seconds: 60
+    validation_rules: {}

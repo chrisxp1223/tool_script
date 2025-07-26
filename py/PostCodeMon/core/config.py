@@ -20,6 +20,7 @@ class ToolConfig:
     retry_attempts: int = 3
     environment_vars: Dict[str, str] = field(default_factory=dict)
     validation_rules: Dict[str, Any] = field(default_factory=dict)
+    working_directory: Optional[str] = None
 
 
 @dataclass 
@@ -182,7 +183,8 @@ class ConfigManager:
                     timeout_seconds=tool_data.get('timeout_seconds', 300),
                     retry_attempts=tool_data.get('retry_attempts', 3),
                     environment_vars=tool_data.get('environment_vars', {}),
-                    validation_rules=tool_data.get('validation_rules', {})
+                    validation_rules=tool_data.get('validation_rules', {}),
+                    working_directory=tool_data.get('working_directory')
                 )
         
         # Extract logging configuration
@@ -234,7 +236,8 @@ class ConfigManager:
                 'timeout_seconds': tool.timeout_seconds,
                 'retry_attempts': tool.retry_attempts,
                 'environment_vars': tool.environment_vars,
-                'validation_rules': tool.validation_rules
+                'validation_rules': tool.validation_rules,
+                'working_directory': tool.working_directory
             } for name, tool in config.tools.items()},
             'logging': {
                 'level': config.logging.level,

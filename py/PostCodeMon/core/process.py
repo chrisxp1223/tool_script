@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, Future
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import psutil
+import sys
 
 from .errors import ToolExecutionError, TimeoutError, ToolNotFoundError
 from .logger import LogManager
@@ -203,22 +204,35 @@ class ProcessManager:
         start_time = time.time()
         process = None
         monitor = None
+        stdout_thread = None
+        stderr_thread = None
+        interrupted = False
         
         try:
             with self.log_manager.create_performance_logger(
                 f"execute_{tool_name}",
                 command=command_str
             ):
-                # Start the process
+                # Start the process with real-time output
+                # Use shell=True for better real-time output on Windows
+                command_str = " ".join(f'"{arg}"' if " " in arg else arg for arg in command_list)
+                
+                # Add environment variables to force line buffering
+                process_env_copy = process_env.copy()
+                process_env_copy['PYTHONUNBUFFERED'] = '1'
+                process_env_copy['PYTHONIOENCODING'] = 'utf-8'
+                
+                # Don't redirect output - let the tool write directly to console
+                # This is the key to getting real-time output
                 process = subprocess.Popen(
-                    command_list,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    command_str,
+                    shell=True,
                     cwd=cwd,
-                    env=process_env,
+                    env=process_env_copy,
                     text=True,
-                    bufsize=1,
+                    bufsize=0,
                     universal_newlines=True
+                    # No stdout/stderr redirection - let output go directly to console
                 )
                 
                 # Track active process
@@ -238,36 +252,8 @@ class ProcessManager:
                         except psutil.NoSuchProcess:
                             pass  # Process may have finished already
                     
-                    # Handle streaming output
-                    stdout_lines = []
-                    stderr_lines = []
-                    
-                    def read_output(pipe, container, callback):
-                        try:
-                            for line in iter(pipe.readline, ''):
-                                if line:
-                                    container.append(line)
-                                    if callback:
-                                        callback(line.rstrip())
-                        except Exception:
-                            pass  # Handle broken pipe gracefully
-                    
-                    # Start output reading threads
-                    stdout_thread = threading.Thread(
-                        target=read_output,
-                        args=(process.stdout, stdout_lines, progress_callback),
-                        daemon=True
-                    )
-                    stderr_thread = threading.Thread(
-                        target=read_output,
-                        args=(process.stderr, stderr_lines, None),
-                        daemon=True
-                    )
-                    
-                    stdout_thread.start()
-                    stderr_thread.start()
-                    
-                    # Wait for process completion with timeout
+                    # No output reading needed since output goes directly to console
+                    # Just wait for process completion
                     try:
                         return_code = process.wait(timeout=timeout)
                     except subprocess.TimeoutExpired:
@@ -280,13 +266,9 @@ class ProcessManager:
                             process.wait()
                         raise TimeoutError(timeout or 0)
                     
-                    # Wait for output threads to complete
-                    stdout_thread.join(timeout=1)
-                    stderr_thread.join(timeout=1)
-                    
                     duration = time.time() - start_time
-                    stdout_str = "".join(stdout_lines)
-                    stderr_str = "".join(stderr_lines)
+                    stdout_str = ""  # No captured output since it goes directly to console
+                    stderr_str = ""  # No captured stderr
                     
                     # Stop monitoring and get metrics
                     resource_metrics = {}
@@ -321,6 +303,46 @@ class ProcessManager:
                     with self.process_lock:
                         self.active_processes.pop(process_id, None)
         
+        except KeyboardInterrupt:
+            interrupted = True
+            duration = time.time() - start_time
+            
+            # Stop monitoring on interruption
+            if monitor:
+                monitor.stop_monitoring()
+            
+            # Terminate the process immediately
+            if process:
+                try:
+                    process.terminate()
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            
+            # Clear output buffers to prevent showing interrupted output
+            stdout_lines.clear()
+            stderr_lines.clear()
+            
+            self.log_manager.log_audit_event(
+                "tool_execution_interrupted",
+                details={
+                    "tool_name": tool_name,
+                    "command": command_str,
+                    "duration": duration
+                }
+            )
+            
+            # Return a result indicating interruption
+            return ProcessResult(
+                return_code=-1,
+                stdout="",
+                stderr="Process interrupted by user",
+                duration=duration,
+                command=command_str,
+                tool_name=tool_name
+            )
+            
         except Exception as e:
             duration = time.time() - start_time
             
@@ -434,5 +456,5 @@ class ProcessManager:
                     except ProcessLookupError:
                         pass
         
-        # Shutdown thread pool
-        self.executor.shutdown(wait=True, timeout=10)
+        # Shutdown thread pool (remove timeout parameter for compatibility)
+        self.executor.shutdown(wait=True)
