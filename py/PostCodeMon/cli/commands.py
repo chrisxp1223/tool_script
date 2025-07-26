@@ -1,6 +1,7 @@
 """CLI command implementations for PostCodeMon."""
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple, Any, Dict
@@ -16,12 +17,14 @@ import yaml
 try:
     from ..core.wrapper import ToolWrapper
     from ..core.errors import PostCodeMonError
+    from ..core.cleaner import get_cleaner
     from .utils import create_wrapper, handle_error
 except ImportError:
     # Add parent directory to path for direct execution
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from core.wrapper import ToolWrapper
     from core.errors import PostCodeMonError
+    from core.cleaner import get_cleaner
     from cli.utils import create_wrapper, handle_error
 
 console = Console()
@@ -382,6 +385,105 @@ def monitor_command(ctx: click.Context, list_processes: bool, kill_tool: Optiona
         handle_error(e, ctx.obj.get('quiet', False))
 
 
+@click.command('clean')
+@click.option(
+    '--dry-run', '-n',
+    is_flag=True,
+    help='Show what would be cleaned without actually removing files'
+)
+@click.option(
+    '--cache-only',
+    is_flag=True,
+    help='Clean only Python cache files'
+)
+@click.option(
+    '--test-only',
+    is_flag=True,
+    help='Clean only testing artifacts'
+)
+@click.option(
+    '--build-only',
+    is_flag=True,
+    help='Clean only build artifacts'
+)
+@click.option(
+    '--log-only',
+    is_flag=True,
+    help='Clean only log and temporary files'
+)
+@click.option(
+    '--ide-only',
+    is_flag=True,
+    help='Clean only IDE-specific files'
+)
+@click.option(
+    '--project-root',
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help='Path to PostCodeMon project root (default: current directory)'
+)
+@click.option(
+    '--output-format',
+    type=click.Choice(['text', 'json', 'yaml']),
+    default='text',
+    help='Output format for results'
+)
+@click.pass_context
+def clean_command(ctx: click.Context, dry_run: bool, cache_only: bool, test_only: bool,
+                 build_only: bool, log_only: bool, ide_only: bool, 
+                 project_root: Optional[Path], output_format: str):
+    """Clean up PostCodeMon project files (cache, test artifacts, logs, etc.)."""
+    try:
+        # Use provided project root or default to current directory
+        root_path = str(project_root) if project_root else os.getcwd()
+        cleaner = get_cleaner(root_path)
+        
+        quiet = ctx.obj.get('quiet', False)
+        
+        # Determine what to clean based on flags
+        if cache_only:
+            result = cleaner.clean_cache_files(dry_run)
+            results = {'categories': {'cache': result}, 'total_removed': result['removed_count']}
+        elif test_only:
+            result = cleaner.clean_test_files(dry_run)
+            results = {'categories': {'test': result}, 'total_removed': result['removed_count']}
+        elif build_only:
+            result = cleaner.clean_build_files(dry_run)
+            results = {'categories': {'build': result}, 'total_removed': result['removed_count']}
+        elif log_only:
+            result = cleaner.clean_log_files(dry_run)
+            results = {'categories': {'log': result}, 'total_removed': result['removed_count']}
+        elif ide_only:
+            result = cleaner.clean_ide_files(dry_run)
+            results = {'categories': {'ide': result}, 'total_removed': result['removed_count']}
+        else:
+            results = cleaner.clean_all(dry_run)
+        
+        # Format and display results
+        if not quiet:
+            output_data = _format_cleanup_results(results, output_format, dry_run)
+            console.print(output_data)
+        
+        # Show summary
+        action = "Would clean" if dry_run else "Cleaned"
+        if results['total_removed'] > 0:
+            if not quiet:
+                if dry_run:
+                    console.print(f"\n[yellow]Run without --dry-run to actually remove {results['total_removed']} files[/yellow]")
+                else:
+                    console.print(f"[green]✓ {action} {results['total_removed']} files/directories[/green]")
+        else:
+            if not quiet:
+                console.print("[green]✓ No files need cleaning[/green]")
+        
+        # Exit with appropriate code based on errors
+        if results.get('errors'):
+            console.print(f"[yellow]Warning: {len(results['errors'])} errors occurred during cleanup[/yellow]", err=True)
+            sys.exit(1)
+        
+    except Exception as e:
+        handle_error(e, ctx.obj.get('quiet', False))
+
+
 # Helper functions
 
 def _format_result(result, output_format: str) -> str:
@@ -645,3 +747,54 @@ def _display_active_processes(processes: Dict[str, Dict[str, Any]]) -> None:
         )
     
     console.print(table)
+
+
+def _format_cleanup_results(results: Dict[str, Any], output_format: str, dry_run: bool) -> str:
+    """Format cleanup results for display."""
+    if output_format == 'json':
+        return json.dumps(results, indent=2)
+    
+    elif output_format == 'yaml':
+        return yaml.dump(results, default_flow_style=False)
+    
+    else:  # text format
+        action = "Would clean" if dry_run else "Cleaned"
+        output = f"[bold]PostCodeMon Cleanup Results[/bold]\n"
+        output += f"[dim]Project Root:[/dim] {results.get('project_root', 'N/A')}\n"
+        output += f"[dim]Mode:[/dim] {'Dry Run' if dry_run else 'Live Cleanup'}\n\n"
+        
+        if 'categories' in results:
+            for category, category_result in results['categories'].items():
+                count = category_result.get('removed_count', 0)
+                if count > 0:
+                    color = "yellow" if dry_run else "green"
+                    status = "would remove" if dry_run else "removed"
+                    output += f"[{color}]✓ {category.title()}:[/{color}] {status} {count} files\n"
+                    
+                    # Show specific files if verbose or few files
+                    files = category_result.get('files_removed', [])
+                    if files and len(files) <= 5:
+                        for file_path in files[:5]:
+                            output += f"  [dim]- {file_path}[/dim]\n"
+                    elif len(files) > 5:
+                        for file_path in files[:3]:
+                            output += f"  [dim]- {file_path}[/dim]\n"
+                        output += f"  [dim]... and {len(files) - 3} more[/dim]\n"
+                else:
+                    output += f"[dim]✓ {category.title()}:[/dim] no files to clean\n"
+                
+                # Show errors if any
+                errors = category_result.get('errors', [])
+                if errors:
+                    output += f"  [red]Errors: {len(errors)}[/red]\n"
+                    for error in errors[:2]:  # Show first 2 errors
+                        output += f"    [red]- {error}[/red]\n"
+        
+        total_removed = results.get('total_removed', 0)
+        if total_removed > 0:
+            color = "yellow" if dry_run else "green"
+            output += f"\n[bold {color}]Total: {action} {total_removed} files/directories[/bold {color}]"
+        else:
+            output += f"\n[bold green]No files needed cleaning[/bold green]"
+        
+        return output

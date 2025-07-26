@@ -14,7 +14,8 @@ try:
         batch_command,
         info_command,
         config_command,
-        monitor_command
+        monitor_command,
+        clean_command
     )
     from .utils import handle_error
 except ImportError:
@@ -25,7 +26,8 @@ except ImportError:
         batch_command,
         info_command,
         config_command,
-        monitor_command
+        monitor_command,
+        clean_command
     )
     from cli.utils import handle_error
 
@@ -95,6 +97,7 @@ cli.add_command(batch_command)
 cli.add_command(info_command)
 cli.add_command(config_command)
 cli.add_command(monitor_command)
+cli.add_command(clean_command)
 
 
 
