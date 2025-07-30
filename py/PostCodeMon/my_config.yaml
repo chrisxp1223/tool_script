@@ -29,8 +29,9 @@ tools:
     environment_vars:
       TOOL_HOME: C:\Users\chri\Firmware-Dev\tool\PostCodeMon\monitor_postcode_KYSY4
       TOOL_LOG_LEVEL: INFO
-    executable_path: C:\Users\chri\Firmware-Dev\tool\PostCodeMon\monitor_postcode_KYSY4\monitor_postcode_KYSY4.exe
-    working_directory: C:\Users\chri\Firmware-Dev\tool\PostCodeMon\monitor_postcode_KYSY4
-    retry_attempts: 10
-    timeout_seconds: 60
+    executable_path: C:\Users\chri\Firmware-Dev\tool_script\py\PostCodeMon\monitor_postcode_KYSY4\monitor_postcode_KYSY4.exe
+    working_directory: C:\Users\chri\Firmware-Dev\tool_script\py\PostCodeMon\monitor_postcode_KYSY4
+    retry_attempts: 1000
+    retry_wait_seconds: 10
+    timeout_seconds: 300
     validation_rules: {}
