@@ -18,6 +18,7 @@ class ToolConfig:
     default_args: List[str] = field(default_factory=list)
     timeout_seconds: int = 300
     retry_attempts: int = 3
+    retry_wait_seconds: int = 10
     environment_vars: Dict[str, str] = field(default_factory=dict)
     validation_rules: Dict[str, Any] = field(default_factory=dict)
     working_directory: Optional[str] = None
@@ -182,6 +183,7 @@ class ConfigManager:
                     default_args=tool_data.get('default_args', []),
                     timeout_seconds=tool_data.get('timeout_seconds', 300),
                     retry_attempts=tool_data.get('retry_attempts', 3),
+                    retry_wait_seconds=tool_data.get('retry_wait_seconds', 10),
                     environment_vars=tool_data.get('environment_vars', {}),
                     validation_rules=tool_data.get('validation_rules', {}),
                     working_directory=tool_data.get('working_directory')

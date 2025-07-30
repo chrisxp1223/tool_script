@@ -209,8 +209,8 @@ class ToolWrapper:
                 
                 # Print retry information to console
                 if attempt > 0:
-                    print(f"\n[?? {attempt + 1}/{tool_config.retry_attempts}] ??????: {effective_tool_name}")
-                    print(f"??: {command_preview}")
+                    print(f"\n[RETRY {attempt + 1}/{tool_config.retry_attempts}] Retrying tool: {effective_tool_name}")
+                    print(f"Command: {command_preview}")
                     print("-" * 50)
                 
                 result = self.process_manager.execute_tool(
@@ -242,7 +242,7 @@ class ToolWrapper:
                 
                 # Print success message if retried
                 if attempt > 0:
-                    print(f"\n[??] ? {attempt + 1} ?????!")
+                    print(f"\n[SUCCESS] Tool executed successfully after {attempt + 1} retries!")
                 
                 return result
                 
@@ -250,8 +250,8 @@ class ToolWrapper:
                 last_exception = e
                 
                 if attempt < tool_config.retry_attempts - 1:
-                    # Wait before retry (exponential backoff)
-                    wait_time = 2 ** attempt
+                    # Wait before retry (fixed wait time)
+                    wait_time = tool_config.retry_wait_seconds
                     self.logger.warning(f"Tool execution failed, retrying in {wait_time}s: {e}", extra={
                         'tool_name': effective_tool_name,
                         'attempt': attempt + 1,
@@ -260,9 +260,9 @@ class ToolWrapper:
                     })
                     
                     # Print retry information to console
-                    print(f"\n[??] ? {attempt + 1} ?????")
-                    print(f"??: {e}")
-                    print(f"[??] {wait_time} ????...")
+                    print(f"\n[ERROR] Attempt {attempt + 1} failed")
+                    print(f"Error: {e}")
+                    print(f"[WAIT] Waiting {wait_time} seconds...")
                     
                     time.sleep(wait_time)
                 else:
@@ -273,8 +273,8 @@ class ToolWrapper:
                     })
                     
                     # Print final failure message
-                    print(f"\n[????] ?? {tool_config.retry_attempts} ????????")
-                    print(f"????: {e}")
+                    print(f"\n[FAILED] Tool failed after {tool_config.retry_attempts} attempts")
+                    print(f"Final error: {e}")
                     
                     raise
         
