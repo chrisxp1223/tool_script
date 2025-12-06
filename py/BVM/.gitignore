@@ -1,0 +1,44 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Configuration files (含密碼)
+bvm_config.yaml
+bvm_config.yml
+bvm_config.json
+*_config.yaml
+*_config.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# BVM 輸出
+*.FD
+*.bin
+*.stkn
+*.tar
+
+# 測試和臨時檔案
+test_*.py
+tmp/
+temp/
+
+# Log files
+*.log
+logs/
+\n# Ignore other project folders\n../PostCodeMon/\n../PyExample/\n*.bak\n../../batch/

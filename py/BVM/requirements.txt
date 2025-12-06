@@ -1,0 +1,10 @@
+# BVM API Client Dependencies
+
+# HTTP requests
+requests>=2.25.0
+
+# YAML configuration support
+PyYAML>=5.4.0
+
+# Optional: For better YAML parsing
+ruamel.yaml>=0.17.0
