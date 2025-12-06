@@ -1,0 +1,76 @@
+# BVM API 配置檔案範本
+# 複製此檔案為 bvm_config.yaml 並填入實際資訊
+
+# BVM 伺服器認證
+bvm:
+  username: YOUR_USERNAME_HERE        # 修改: 你的 BVM 使用者名稱
+  password: YOUR_PASSWORD_HERE        # 修改: 你的 BVM 密碼
+  base_url: http://bvm/               # 通常不需要修改
+
+# 檔案路徑配置
+paths:
+  # 修改為你的實際路徑
+  binary_dir: D:\BVM\binaries         # 二進制檔案目錄 (SMU, PSP 韌體等)
+  download_dir: D:\BVM\downloads      # 下載的 BIOS 檔案目錄
+  token_dir: D:\BVM\tokens            # BIOS 簽署 token 檔案目錄
+
+# 平台配置 - 根據你的目標平台修改
+platform:
+  processor_name: Rembrandt - Family 19h              # 修改: 處理器名稱
+  platform_name: Rev_RMB_Mayan_Insyde_EDKII           # 修改: 平台名稱
+  psp_config: RMB                                     # 修改: PSP 配置 (RMB/PHX/STX/etc)
+
+# 預設參數
+defaults:
+  base_bios_type: PI BIOS             # Weekly BIOS, PI BIOS, User-Generated, By Request Id
+  purpose: BVM API automation
+  sign_type: NOSIGN                   # NOSIGN 或 PK
+  sign_hp: "0"
+
+# PSP Replacement 特定配置 (可選)
+psp:
+  smu_firmware: SMU_46.59.0.bin       # 常用的 SMU 韌體檔名
+  
+  signing:
+    sp_function: SIGN REMBRANDT BIOS (4K)             # 修改: 平台特定的簽署函數
+    token_file: Rembrandt-4K-BIOS-SBR-0110.stkn       # 修改: Token 檔名
+    key_size: "0x200"                                 # 4K key=0x200, 2K key=0x100
+
+# CBS Override 特定配置 (可選)
+cbs:
+  config_program: Rev_RMB_Mayan_Insyde_EDKII          # 修改: CBS 配置程式
+  is_gbs: "0"                         # 0=CBS Override, 2=Binary CBS Override
+
+# Option ROM 特定配置 (可選)
+option_rom:
+  roms:
+    - guid: 348C4D62-BFBD-4882-9ECE-C80BB1C4783B      # 修改: Option ROM GUID
+      file: OptionRom3.bin                            # 修改: Option ROM 檔名
+    - guid: 61F0BA73-93A9-419D-BD69-ADE3C5D5217B
+      file: OptionRom5.bin
+
+# === 常見平台配置參考 ===
+
+# Rembrandt (RMB):
+#   processor_name: Rembrandt - Family 19h
+#   platform_name: Rev_RMB_Mayan_Insyde_EDKII
+#   psp_config: RMB
+#   sp_function: SIGN REMBRANDT BIOS (4K)
+
+# Phoenix (PHX):
+#   processor_name: Phoenix - Family 19h
+#   platform_name: Rev_PHX_Mayan_AMD_EDKII
+#   psp_config: PHX
+#   sp_function: SIGN PHOENIX BIOS (4K)
+
+# StrixPoint (STX):
+#   processor_name: StrixPoint - Family 1Ah
+#   platform_name: Rev_STX_BirmanPlus_AMD_EDKII_64M
+#   psp_config: STX
+#   sp_function: SIGN STRIXPOINT BIOS (4K)
+
+# Krackan (KRK):
+#   processor_name: Krackan - Family 1Ah
+#   platform_name: Rev_KRK_Aransas_AMD_EDKII
+#   psp_config: KRK
+#   sp_function: SIGN KRACKAN BIOS (4K)
