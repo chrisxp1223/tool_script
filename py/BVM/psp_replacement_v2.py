@@ -1,9 +1,9 @@
 """
-PSP Replacement v2.0 - 使用Configuration系統
+PSP Replacement v2.0 - Using Configuration System
 
 Improvements:
-- 使用 BvmClient Basic類別
-- 支援Configuration檔案
+- Uses BvmClient base class
+- Supports configuration files
 - Object-oriented design
 - Better error handling
 """
@@ -32,8 +32,8 @@ class PspReplacer(BvmClient):
         Initialize PSP Replacer
 
         Args:
-            username: BVM username (Optional，If using config)
-            password: BVM password (Optional，If using config)
+            username: BVM username (Optional, if using config)
+            password: BVM password (Optional, if using config)
             config: BvmConfig instance (Optional)
             config_file: Configuration file path (Optional)
         """
@@ -43,7 +43,7 @@ class PspReplacer(BvmClient):
 
     def get_available_operations(self) -> Dict[str, str]:
         """
-        Get可用的Operation type
+        Get available operation types
 
         Returns:
             Operation type dictionary
@@ -58,13 +58,13 @@ class PspReplacer(BvmClient):
 
     def _get_operation_type_str(self, operation_type: str) -> str:
         """
-        GetOperation type字串
+        Get operation type string
 
         Args:
             operation_type: Operation type (For example: "PSP")
 
         Returns:
-            Operation type字串
+            Operation type string
         """
         available_ops = self.get_available_operations()
 
@@ -84,7 +84,7 @@ class PspReplacer(BvmClient):
             processor_name: Processor name
             platform_name: Platform name
             bios_type: BIOS type
-            revision: 版本
+            revision: Revision/version
             operation_type: Operation type
             purpose: Purpose
             psp_config: PSP Configuration
@@ -93,14 +93,14 @@ class PspReplacer(BvmClient):
         Returns:
             Request ID
         """
-        # Get processor 和 platform ID
+        # Get processor and platform ID
         proc_id, proc = self.get_processor_id(processor_name)
         plat_id, plat = self.get_platform_id(proc, platform_name)
 
         # Get revision ID
         rev_id = self.get_revision(plat, bios_type, revision)
 
-        # GetOperation type字串
+        # Get operation type string
         op_type_str = self._get_operation_type_str(operation_type)
 
         # Generate request
@@ -181,7 +181,7 @@ class PspReplacer(BvmClient):
         Args:
             request_id: Request ID
             replacement_list: Replacement list
-            sign_type: Sign type (NOSIGN 或 PK)
+            sign_type: Sign type (NOSIGN or PK)
             sign_hp: Sign HP
             sign_username: Sign username
             sign_password: Sign password
@@ -189,7 +189,7 @@ class PspReplacer(BvmClient):
         """
         self.logger.info("Submitting PSP Request...")
 
-        # 使用預設Authentication資訊
+        # Use default authentication credentials
         if sign_username is None:
             sign_username = self.username
         if sign_password is None:
@@ -241,19 +241,19 @@ class PspReplacer(BvmClient):
 
         Args:
             replacement_list: Replacement list
-            processor_name: Processor name (Optional，從Configuration讀取)
-            platform_name: Platform name (Optional，從Configuration讀取)
-            bios_type: BIOS type (Optional，從Configuration讀取)
-            revision: 版本 (Required)
-            psp_config: PSP Configuration (Optional，從Configuration讀取)
-            purpose: Purpose (Optional，從Configuration讀取)
-            sign_type: Sign type (Optional，從Configuration讀取)
-            download_path: DownloadPath (Optional)
+            processor_name: Processor name (Optional, read from config)
+            platform_name: Platform name (Optional, read from config)
+            bios_type: BIOS type (Optional, read from config)
+            revision: Revision/version (Required)
+            psp_config: PSP Configuration (Optional, read from config)
+            purpose: Purpose (Optional, read from config)
+            sign_type: Sign type (Optional, read from config)
+            download_path: Download path (Optional)
 
         Returns:
             Request ID
         """
-        # 從Configuration讀取Default values
+        # Read default values from configuration
         if self.config:
             processor_name = processor_name or self.config.processor_name
             platform_name = platform_name or self.config.platform_name
@@ -262,7 +262,7 @@ class PspReplacer(BvmClient):
             purpose = purpose or self.config.purpose
             sign_type = sign_type or self.config.sign_type
 
-        # 檢查Required參數
+        # Check required parameters
         if not all([processor_name, platform_name, bios_type, revision, psp_config]):
             raise ValueError("Missing required parameters. Please provide or configure: processor_name, platform_name, bios_type, revision, psp_config")
 
@@ -292,7 +292,7 @@ class PspReplacer(BvmClient):
             sign_sp_function=sign_sp_function
         )
 
-        # 4. Download (如果指定Path)
+        # 4. Download (if path specified)
         if download_path:
             self.download_bios(request_id, download_path)
 
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     # Example 1: Replace SMU firmware
     print("=== Example 1: Replace SMU Firmware ===")
 
-    # 使用Configuration的Path
+    # Using paths from configuration
     smu_path = config.get_binary_path("SMU_46.59.0.bin")
     download_path = config.get_download_path("modified_bios.FD")
 

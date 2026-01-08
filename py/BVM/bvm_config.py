@@ -152,7 +152,7 @@ class BvmConfig:
 
     def get_download_path(self, filename: str) -> str:
         """
-        GetDownload檔案Full path
+        Get full path for download file
 
         Args:
             filename: Filename
@@ -164,7 +164,7 @@ class BvmConfig:
 
     def get_token_path(self, filename: str) -> str:
         """
-        Get token 檔案Full path
+        Get full path for token file
 
         Args:
             filename: Token filename
@@ -220,7 +220,7 @@ class BvmConfig:
         Get arbitrary config value (Supports dot notation path)
 
         Args:
-            key: Configuration key (For example: "bvm.username" 或 "paths.binary_dir")
+            key: Configuration key (For example: "bvm.username" or "paths.binary_dir")
             default: Default values
 
         Returns:
@@ -245,7 +245,7 @@ class BvmConfig:
 
     def set(self, key: str, value: Any) -> None:
         """
-        SetConfiguration value (Supports dot notation path)
+        Set configuration value (Supports dot notation path)
 
         Args:
             key: Configuration key

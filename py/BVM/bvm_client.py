@@ -91,7 +91,7 @@ class BvmClient:
         file_level: int = logging.DEBUG,
     ):
         """
-        初始化 BVM 客戶端
+        Initialize BVM client
 
         Args:
             username: BVM username (Optional if using config)
@@ -478,7 +478,7 @@ class BvmClient:
 if __name__ == "__main__":
     print("=== BVM Client Examples ===\n")
 
-    # Method 1: Using config file (推薦)
+    # Method 1: Using config file (recommended)
     print("Method 1: Using config file")
     try:
         client = BvmClient(config_file="bvm_config.yaml")
@@ -489,7 +489,7 @@ if __name__ == "__main__":
         processors = client.get_processor_list()
         print(f"✓ Found {len(processors)} processors")
 
-        # Using config file中的Platform configuration
+        # Using platform configuration from config file
         if client.config:
             proc_id, proc = client.get_processor_id(client.config.processor_name)
             plat_id, plat = client.get_platform_id(proc, client.config.platform_name)

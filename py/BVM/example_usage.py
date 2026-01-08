@@ -1,15 +1,15 @@
 """
-BVM 配置檔案使用範例
+BVM Config File Usage Examples
 
-示範如何使用 bvm_config.yaml 來管理設定
+Demonstrates how to use bvm_config.yaml to manage settings
 """
 
 from bvm_config import BvmConfig
 from bvm_client import BvmClient
 
 def example_1_basic_config():
-    """範例 1: 基本配置載入"""
-    print("=== 範例 1: 基本配置載入 ===")
+    """Example 1: Basic config loading"""
+    print("=== Example 1: Basic Config Loading ===")
 
     config = BvmConfig("bvm_config.yaml")
 
@@ -22,12 +22,12 @@ def example_1_basic_config():
 
 
 def example_2_file_paths():
-    """範例 2: 檔案路徑處理"""
-    print("=== 範例 2: 檔案路徑處理 ===")
+    """Example 2: File path handling"""
+    print("=== Example 2: File Path Handling ===")
 
     config = BvmConfig("bvm_config.yaml")
 
-    # 取得完整路徑
+    # Get full paths
     smu_binary = config.get_binary_path("SMU_46.59.0.bin")
     output_bios = config.get_download_path("output.FD")
     token_file = config.get_token_path("Rembrandt-4K-BIOS-SBR-0110.stkn")
@@ -39,35 +39,35 @@ def example_2_file_paths():
 
 
 def example_3_client_with_config():
-    """範例 3: 使用配置建立 BVM 客戶端"""
-    print("=== 範例 3: 使用配置建立客戶端 ===")
+    """Example 3: Create BVM client with config"""
+    print("=== Example 3: Create Client with Config ===")
 
-    # 方式 1: 直接傳入配置檔案路徑
+    # Method 1: Pass config file path directly
     client = BvmClient(config_file="bvm_config.yaml")
     print(f"Client created for user: {client.username}")
 
-    # 方式 2: 先建立配置，再傳入
+    # Method 2: Create config first, then pass to client
     config = BvmConfig("bvm_config.yaml")
     client2 = BvmClient(config=config)
 
-    # 可以使用配置的檔案路徑功能
+    # Can use config's file path functionality
     if client.config:
         download_path = client.config.get_download_path("modified_bios.FD")
         print(f"Will download to: {download_path}")
 
-    # 完成後登出
+    # Logout when done
     client.logout()
     client2.logout()
     print()
 
 
 def example_4_psp_replacement_scenario():
-    """範例 4: PSP Replacement 完整場景"""
-    print("=== 範例 4: PSP Replacement 場景 ===")
+    """Example 4: PSP Replacement complete scenario"""
+    print("=== Example 4: PSP Replacement Scenario ===")
 
     config = BvmConfig("bvm_config.yaml")
 
-    # 建立 replacementList
+    # Create replacement list
     smu_binary = config.get_binary_path(config.get("psp.smu_firmware", "SMU_46.59.0.bin"))
 
     replacement_list = [
@@ -91,19 +91,19 @@ def example_4_psp_replacement_scenario():
     print(f"  - Entry type: 0x8 (SMU)")
     print(f"  - Operation: Modify")
 
-    # 下載路徑
+    # Download path
     download_path = config.get_download_path(f"modified_{config.psp_config}_bios.FD")
     print(f"\nWill download to: {download_path}")
     print()
 
 
 def example_5_signing_config():
-    """範例 5: BIOS 簽署配置"""
-    print("=== 範例 5: BIOS 簽署配置 ===")
+    """Example 5: BIOS signing configuration"""
+    print("=== Example 5: BIOS Signing Configuration ===")
 
     config = BvmConfig("bvm_config.yaml")
 
-    # 從配置讀取簽署參數
+    # Read signing parameters from config
     sign_type = config.get("psp.signing.sp_function")
     token_file = config.get_token_path(config.get("psp.signing.token_file"))
     key_size = config.get("psp.signing.key_size")
@@ -112,7 +112,7 @@ def example_5_signing_config():
     print(f"Token File: {token_file}")
     print(f"Key Size: {key_size}")
 
-    # 建立簽署所需的條目
+    # Create signing entries
     signing_entries = [
         {
             "entryType": "IMAGE_ENTRY",
@@ -140,12 +140,12 @@ def example_5_signing_config():
 
 
 def example_6_option_rom_config():
-    """範例 6: Option ROM 配置"""
-    print("=== 範例 6: Option ROM 配置 ===")
+    """Example 6: Option ROM configuration"""
+    print("=== Example 6: Option ROM Configuration ===")
 
     config = BvmConfig("bvm_config.yaml")
 
-    # 從配置讀取 Option ROM 清單
+    # Read Option ROM list from config
     roms = config.get("option_rom.roms", [])
 
     replacement_list = []
@@ -163,49 +163,49 @@ def example_6_option_rom_config():
 
 
 def example_7_modify_and_save():
-    """範例 7: 修改配置並儲存"""
-    print("=== 範例 7: 修改配置並儲存 ===")
+    """Example 7: Modify config and save"""
+    print("=== Example 7: Modify Config and Save ===")
 
     config = BvmConfig("bvm_config.yaml")
 
-    # 修改配置值
+    # Modify config value
     old_purpose = config.purpose
     config.set("defaults.purpose", "Modified purpose for testing")
 
     print(f"Old purpose: {old_purpose}")
     print(f"New purpose: {config.purpose}")
 
-    # 儲存到新檔案
+    # Save to new file
     # config.save("bvm_config_modified.yaml")
-    print("\n(未實際儲存，避免修改原始檔案)")
+    print("\n(Not actually saved to avoid modifying original file)")
 
-    # 恢復原始值
+    # Restore original value
     config.set("defaults.purpose", old_purpose)
     print()
 
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("BVM 配置檔案使用範例")
+    print("BVM Config File Usage Examples")
     print("="*60 + "\n")
 
     try:
         example_1_basic_config()
         example_2_file_paths()
-        # example_3_client_with_config()  # 需要 BVM 伺服器連線
+        # example_3_client_with_config()  # Requires BVM server connection
         example_4_psp_replacement_scenario()
         example_5_signing_config()
         example_6_option_rom_config()
         example_7_modify_and_save()
 
         print("\n" + "="*60)
-        print("所有範例執行完成!")
+        print("All examples completed!")
         print("="*60 + "\n")
 
     except FileNotFoundError as e:
-        print(f"\n錯誤: 找不到配置檔案")
-        print(f"請先建立 bvm_config.yaml")
-        print(f"可以執行: python bvm_config.py")
+        print(f"\nError: Config file not found")
+        print(f"Please create bvm_config.yaml first")
+        print(f"You can run: python bvm_config.py")
 
     except Exception as e:
-        print(f"\n錯誤: {e}")
+        print(f"\nError: {e}")
