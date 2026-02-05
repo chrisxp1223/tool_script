@@ -62,18 +62,45 @@ logger = setup_logging()
 PLATFORM_CONFIGS = {
     'rmb': {
         'name': 'Rembrandt',
+        'family': 'rembrandt',
+        'input_file': 'rmb',
         'header_format': 'RMB_FORMAT',
         'data_pattern': 'MEM_MX_DATA'
     },
+    'phx': {
+        'name': 'Phoenix',
+        'family': 'phoenix',
+        'input_file': 'phx',
+        'header_format': 'PHX_FORMAT',
+        'data_pattern': 'MEM_PHX_DATA'
+    },
     'hpt': {
         'name': 'Hawkpoint',
+        'family': 'phoenix',
+        'input_file': 'hpt',
         'header_format': 'HPT_FORMAT',
         'data_pattern': 'MEM_HPT_DATA'
     },
     'stx': {
         'name': 'Strix',
+        'family': 'strix',
+        'input_file': 'stx',
         'header_format': 'STX_FORMAT',
         'data_pattern': 'MEM_STX_DATA'
+    },
+    'krk': {
+        'name': 'Krackan',
+        'family': 'strix',
+        'input_file': 'stx',
+        'header_format': 'KRK_FORMAT',
+        'data_pattern': 'MEM_KRK_DATA'
+    },
+    'gpt': {
+        'name': 'Granite Point',
+        'family': 'strix',
+        'input_file': 'stx',
+        'header_format': 'GPT_FORMAT',
+        'data_pattern': 'MEM_GPT_DATA'
     }
 }
 
@@ -380,6 +407,10 @@ def get_file_name(platform_name):
     Retrieves the full path of the markdown file for the given platform
     from the 'input' directory located in the same directory as the script.
 
+    Uses the 'input_file' field from PLATFORM_CONFIGS to determine which
+    input file to use. This allows multiple platforms to share the same
+    input file (e.g., krk and gpt use stx input file).
+
     Args:
         platform_name (str): The name of the platform (e.g., 'rmb', 'hpt', 'stx').
 
@@ -394,7 +425,9 @@ def get_file_name(platform_name):
             logger.error(f"Input directory not found at {input_dir}")
             return None
 
-        expected_filename = f"dqmap_{platform_name}.md"
+        # Use input_file from config, fallback to platform_name if not specified
+        input_file_key = PLATFORM_CONFIGS.get(platform_name, {}).get('input_file', platform_name)
+        expected_filename = f"dqmap_{input_file_key}.md"
         file_path = os.path.join(input_dir, expected_filename)
 
         if not os.path.exists(file_path):
@@ -423,12 +456,21 @@ def parse_command_line_args():
 
         parser = argparse.ArgumentParser(description='DQ Map Generator Tool')
         platform_group = parser.add_mutually_exclusive_group(required=True)
+        # Rembrandt family
         platform_group.add_argument('--rmb', action='store_const', const='rmb', dest='platform',
                                   help='Use Rembrandt platform configuration')
+        # Phoenix family
+        platform_group.add_argument('--phx', action='store_const', const='phx', dest='platform',
+                                  help='Use Phoenix platform configuration')
         platform_group.add_argument('--hpt', action='store_const', const='hpt', dest='platform',
-                                  help='Use Hawkpoint platform configuration')
+                                  help='Use Hawkpoint platform configuration (Phoenix family)')
+        # Strix family
         platform_group.add_argument('--stx', action='store_const', const='stx', dest='platform',
                                   help='Use Strix platform configuration')
+        platform_group.add_argument('--krk', action='store_const', const='krk', dest='platform',
+                                  help='Use Krackan platform configuration (Strix family)')
+        platform_group.add_argument('--gpt', action='store_const', const='gpt', dest='platform',
+                                  help='Use Granite Point platform configuration (Strix family)')
 
         args = parser.parse_args()
         return args.platform
@@ -505,8 +547,26 @@ if __name__ == "__main__":
                 f.write(f"// Format: {PLATFORM_CONFIGS[platform]['header_format']}\n")
                 f.write(f"// Pattern: {PLATFORM_CONFIGS[platform]['data_pattern']}\n\n")
                 f.write("const char* dq_map[][8] = {\n")
-                for group in groups:
+                # MA/MB Mapping block (groups 0-7)
+                f.write("  // MA/MB Mapping\n")
+                f.write("  {\n")
+                f.write("    // MAA/MAB\n")
+                for group in groups[0:4]:
                     f.write(f"    {{ {', '.join(group)} }},\n")
+                f.write("    // MBA/MBB\n")
+                for group in groups[4:8]:
+                    f.write(f"    {{ {', '.join(group)} }},\n")
+                f.write("  },\n")
+                # MC/MD Mapping block (groups 8-15)
+                f.write("  // MC/MD Mapping\n")
+                f.write("  {\n")
+                f.write("    // MCA/MCB\n")
+                for group in groups[8:12]:
+                    f.write(f"    {{ {', '.join(group)} }},\n")
+                f.write("    // MDA/MDB\n")
+                for group in groups[12:16]:
+                    f.write(f"    {{ {', '.join(group)} }},\n")
+                f.write("  }\n")
                 f.write("};\n\n")
                 f.write("#endif // DQMAP_H\n")
 
