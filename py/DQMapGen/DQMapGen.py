@@ -187,7 +187,8 @@ def parse_dqmap_content(content):
                     is_b_side = True
                 elif 'MAA/MBA/MCA/MDA' in line:
                     is_b_side = False
-                print(f"Section: {current_section}, B side: {is_b_side}")
+                side_name = 'B' if is_b_side else 'A'
+                print(f"Section: {current_section}, Side: {side_name}")
                 continue
 
             # Skip header rows and empty lines
