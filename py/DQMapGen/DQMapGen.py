@@ -18,6 +18,8 @@ import sys
 import itertools
 import argparse
 
+from convert2md import convert_excel_to_markdown, PLATFORM_EXCEL_CONFIGS
+
 # Set up logging configuration
 def setup_logging():
     """Configure logging with custom format and level.
@@ -449,13 +451,19 @@ def parse_command_line_args():
         Parse command line arguments to determine which platform configuration to use.
 
         Returns:
-            str: The selected platform identifier ('rmb', 'hpt', or 'stx')
+            argparse.Namespace: Parsed arguments with 'platform' and 'from_excel' attributes
         """
         # TODO: Modulize the architecture to easily support older and newer platforms
         # TODO: Implement a plugin system for platform-specific code and configurations
         # TODO: Create a configuration file format for defining new platforms without code changes
 
-        parser = argparse.ArgumentParser(description='DQ Map Generator Tool')
+        parser = argparse.ArgumentParser(
+            description='DQ Map Generator Tool',
+            epilog='''Examples:
+  python DQMapGen.py --rmb                 Convert from existing .md file
+  python DQMapGen.py --stx --from-excel    Convert from Excel file (generates .md and .h)
+  python DQMapGen.py --krk                 Krackan uses STX input file'''
+        )
         platform_group = parser.add_mutually_exclusive_group(required=True)
         # Rembrandt family
         platform_group.add_argument('--rmb', action='store_const', const='rmb', dest='platform',
@@ -473,8 +481,12 @@ def parse_command_line_args():
         platform_group.add_argument('--gpt', action='store_const', const='gpt', dest='platform',
                                   help='Use Granite Point platform configuration (Strix family)')
 
+        # Input source option
+        parser.add_argument('--from-excel', action='store_true', dest='from_excel',
+                          help='Convert from Excel file instead of existing .md file')
+
         args = parser.parse_args()
-        return args.platform
+        return args
 
 if __name__ == "__main__":
 
@@ -484,7 +496,20 @@ if __name__ == "__main__":
     interactive_offsets = None
     parameters_obtained = False
 
-    platform = parse_command_line_args()
+    args = parse_command_line_args()
+    platform = args.platform
+    from_excel = args.from_excel
+
+    # --- Step 0: Convert Excel to Markdown if --from-excel is specified
+    if from_excel:
+        # Get the input_file key for this platform (handles krk/gpt using stx)
+        input_file_key = PLATFORM_CONFIGS.get(platform, {}).get('input_file', platform)
+        print(f"Converting Excel to Markdown for platform: {input_file_key}")
+        if not convert_excel_to_markdown(input_file_key):
+            logger.error(f"Failed to convert Excel to Markdown for platform: {input_file_key}")
+            sys.exit(1)
+        print(f"Excel conversion completed successfully.")
+
     get_file_name(platform)
 
     # --- Step 1: Get interactive offsets

@@ -122,8 +122,9 @@ def convert_excel_to_markdown(platform):
         return False
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    xlsx_path = os.path.join(script_dir, f"dqmap_{platform}.xlsx")
-    output_path = os.path.join(script_dir, "input", f"dqmap_{platform}.md")
+    input_dir = os.path.join(script_dir, "input")
+    xlsx_path = os.path.join(input_dir, f"dqmap_{platform}.xlsx")
+    output_path = os.path.join(input_dir, f"dqmap_{platform}.md")
 
     if not os.path.exists(xlsx_path):
         print(f"Error: Input file '{xlsx_path}' does not exist. Please check the file path.")
