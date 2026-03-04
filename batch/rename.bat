@@ -3,17 +3,18 @@ setlocal enabledelayedexpansion
 
 :: ============================================================
 :: rename.bat - BIOS Binary Copy & Rename Script
-:: Usage: rename.bat <SKU> <BUILD_TYPE> <SOURCE_ROOT>
-:: Example: rename.bat XB ext C:\Users\chri\Firmware-Dev\StxKrkGpt\Gorgon\PI_1002a
+:: Usage: rename.bat <SKU> <BUILD_TYPE> [SOURCE_ROOT]
+:: Example: rename.bat XB ext
+:: SOURCE_ROOT defaults to the directory where rename.bat resides.
 :: ============================================================
 
 set SKU=%1
 set BUILD_TYPE=%2
-set SOURCE_ROOT=%3
+set SOURCE_ROOT=%~3
 
 if "%SKU%"=="" (
     echo [ERROR] SKU is required.
-    echo Usage: rename.bat ^<SKU^> ^<BUILD_TYPE^> ^<SOURCE_ROOT^>
+    echo Usage: rename.bat ^<SKU^> ^<BUILD_TYPE^> [SOURCE_ROOT]
     exit /b 1
 )
 if "%BUILD_TYPE%"=="" (
@@ -21,9 +22,10 @@ if "%BUILD_TYPE%"=="" (
     exit /b 1
 )
 if "%SOURCE_ROOT%"=="" (
-    echo [ERROR] SOURCE_ROOT is required.
-    exit /b 1
+    set "SOURCE_ROOT=%~dp0"
 )
+:: Remove trailing backslash if present
+if "!SOURCE_ROOT:~-1!"=="\" set "SOURCE_ROOT=!SOURCE_ROOT:~0,-1!"
 
 :: ============================================================
 :: Step 1: SKU -> Platform Name Mapping
